@@ -24,22 +24,34 @@
         </x-ui-page-actionbar>
     </x-slot>
 
-    <x-ui-page-container>
-        {{-- Filters --}}
-        <div class="flex items-center gap-3 mb-6">
-            <div class="flex-1 max-w-sm">
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Suchen..."
-                    class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true" side="left">
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
+                    <x-ui-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Skill-Name..." class="w-full" size="sm" />
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Kategorie</h3>
+                    <select wire:model.live="categoryFilter" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                        <option value="">Alle Kategorien</option>
+                        <option value="technical">Technical</option>
+                        <option value="methodical">Methodical</option>
+                        <option value="domain">Domain</option>
+                        <option value="social">Social</option>
+                    </select>
+                </div>
             </div>
-            <select wire:model.live="categoryFilter" class="rounded-md border-gray-300 shadow-sm text-sm">
-                <option value="">Alle Kategorien</option>
-                <option value="technical">Technical</option>
-                <option value="methodical">Methodical</option>
-                <option value="domain">Domain</option>
-                <option value="social">Social</option>
-            </select>
-        </div>
+        </x-ui-page-sidebar>
+    </x-slot>
 
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-ui-page-container>
         @if(!$showMatrix)
             {{-- ═══ Katalog-Ansicht ═══ --}}
             <div class="bg-white rounded-lg border border-[var(--ui-border)]">
