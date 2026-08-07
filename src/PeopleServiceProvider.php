@@ -56,6 +56,33 @@ class PeopleServiceProvider extends ServiceProvider
         // Views & Livewire
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'people');
         $this->registerLivewireComponents();
+
+        // Tools registrieren (loose gekoppelt - für AI/Chat)
+        $this->registerTools();
+    }
+
+    /**
+     * Registriert People-Tools für die AI/Chat-Funktionalität.
+     */
+    protected function registerTools(): void
+    {
+        try {
+            $registry = resolve(\Platform\Core\Tools\ToolRegistry::class);
+
+            // Skill-Katalog
+            $registry->register(new \Platform\People\Tools\CreateSkillTool());
+            $registry->register(new \Platform\People\Tools\UpdateSkillTool());
+            $registry->register(new \Platform\People\Tools\DeleteSkillTool());
+            $registry->register(new \Platform\People\Tools\ListSkillsTool());
+
+            // Employee-Skill-Zuordnung (Fähigkeits-Bestand)
+            $registry->register(new \Platform\People\Tools\AssignEmployeeSkillTool());
+            $registry->register(new \Platform\People\Tools\UpdateEmployeeSkillTool());
+            $registry->register(new \Platform\People\Tools\RemoveEmployeeSkillTool());
+            $registry->register(new \Platform\People\Tools\ListEmployeeSkillsTool());
+        } catch (\Throwable $e) {
+            // Registry nicht verfügbar (z. B. in Tests/CLI ohne Core-Tools) — ignorieren.
+        }
     }
 
     protected function registerLivewireComponents(): void
