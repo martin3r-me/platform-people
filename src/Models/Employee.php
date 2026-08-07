@@ -54,6 +54,17 @@ class Employee extends Model
                 );
             }
         });
+
+        // Beim Löschen die Facette (dimension_link) vom Knoten entfernen — kein Phantom.
+        static::deleted(function (self $model) {
+            \Platform\People\Support\OrganizationLink::sync(
+                'people_employee',
+                (int) $model->id,
+                null,
+                $model->team_id ? (int) $model->team_id : null,
+                auth()->id(),
+            );
+        });
     }
 
     public function team(): BelongsTo

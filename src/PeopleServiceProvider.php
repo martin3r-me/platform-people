@@ -62,6 +62,7 @@ class PeopleServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Platform\People\Console\Commands\ImportSkillsCommand::class,
+                \Platform\People\Console\Commands\ImportJobProfilesCommand::class,
             ]);
         }
 
