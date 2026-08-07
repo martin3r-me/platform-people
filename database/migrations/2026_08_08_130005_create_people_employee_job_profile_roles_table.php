@@ -15,9 +15,9 @@ return new class extends Migration
     {
         Schema::create('people_employee_job_profile_roles', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('employee_job_profile_id')
-                ->constrained('people_employee_job_profiles')
-                ->cascadeOnDelete();
+            // Expliziter kurzer FK-Name — der Auto-Name (…_employee_job_profile_id_foreign)
+            // überschreitet MySQLs 64-Zeichen-Limit.
+            $table->unsignedBigInteger('employee_job_profile_id');
 
             // Weiche Referenz auf organization_roles.id (kein FK).
             $table->unsignedBigInteger('role_id');
@@ -29,6 +29,10 @@ return new class extends Migration
             $table->unique(['employee_job_profile_id', 'role_id'], 'ppl_ejpr_unique');
             $table->index(['employee_job_profile_id', 'sort_order'], 'ppl_ejpr_order_idx');
             $table->index(['role_id']);
+
+            $table->foreign('employee_job_profile_id', 'ppl_ejpr_ejp_fk')
+                ->references('id')->on('people_employee_job_profiles')
+                ->cascadeOnDelete();
         });
     }
 
