@@ -58,6 +58,13 @@ class PeopleServiceProvider extends ServiceProvider
         // Migrationen laden
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
+        // Console-Commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Platform\People\Console\Commands\ImportSkillsCommand::class,
+            ]);
+        }
+
         // Config veröffentlichen
         $this->publishes([
             __DIR__.'/../config/people.php' => config_path('people.php'),
