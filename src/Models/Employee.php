@@ -41,11 +41,29 @@ class Employee extends Model
                 $model->uuid = $uuid;
             }
         });
+
+        // org_entity_id (Person-Knoten) graph-nativ auf einen dimension_link spiegeln.
+        static::saved(function (self $model) {
+            if ($model->wasRecentlyCreated || $model->wasChanged('org_entity_id')) {
+                \Platform\People\Support\OrganizationLink::sync(
+                    'people_employee',
+                    (int) $model->id,
+                    $model->org_entity_id ? (int) $model->org_entity_id : null,
+                    $model->team_id ? (int) $model->team_id : null,
+                    auth()->id(),
+                );
+            }
+        });
     }
 
     public function team(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class);
+    }
+
+    public function organizationEntity(): BelongsTo
+    {
+        return $this->belongsTo(\Platform\Organization\Models\OrganizationEntity::class, 'org_entity_id');
     }
 
     public function user(): BelongsTo

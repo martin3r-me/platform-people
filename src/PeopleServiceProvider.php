@@ -5,9 +5,11 @@ namespace Platform\People;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Livewire\Livewire;
 use Platform\Core\PlatformCore;
 use Platform\Core\Routing\ModuleRouter;
+use Platform\People\Models\Employee;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 
@@ -21,6 +23,11 @@ class PeopleServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Eigene Modelle über stabile Aliase morphbar machen (dimension_links / Cross-Modul).
+        Relation::morphMap([
+            'people_employee' => Employee::class,
+        ]);
+
         // Modul registrieren
         if (
             config()->has('people.routing') &&
@@ -59,6 +66,22 @@ class PeopleServiceProvider extends ServiceProvider
 
         // Tools registrieren (loose gekoppelt - für AI/Chat)
         $this->registerTools();
+
+        // Org-Graph: Mitarbeiter am Personen-Knoten rendern (guarded — organization optional).
+        $this->registerOrganizationIntegration();
+    }
+
+    /**
+     * Registriert den EntityLinkProvider, damit Mitarbeiter am Org-Personen-Knoten rendern.
+     */
+    protected function registerOrganizationIntegration(): void
+    {
+        try {
+            resolve(\Platform\Organization\Services\EntityLinkRegistry::class)
+                ->register(new \Platform\People\Organization\PeopleEntityLinkProvider());
+        } catch (\Throwable $e) {
+            // organization-Modul nicht verfügbar — ignorieren.
+        }
     }
 
     /**
