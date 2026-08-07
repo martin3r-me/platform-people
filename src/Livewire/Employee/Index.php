@@ -105,7 +105,12 @@ class Index extends Component
     public function delete(int $id): void
     {
         $teamId = Auth::user()->currentTeam->id;
-        Employee::forTeam($teamId)->where('id', $id)->delete();
+
+        // Model-Delete (nicht Query-Builder), damit der deleted-Hook den dimension_link entfernt.
+        $employee = Employee::forTeam($teamId)->find($id);
+        if ($employee) {
+            $employee->delete();
+        }
 
         unset($this->employees);
         $this->dispatch('toast', message: 'Gelöscht');
