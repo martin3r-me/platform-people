@@ -67,4 +67,9 @@ class Employee extends Model
     {
         return $query->where('status', 'active');
     }
+
+    public function scopeForTeam($query, $teamId)
+    {
+        return $query->where('team_id', $teamId);
+    }
 }

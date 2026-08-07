@@ -40,5 +40,20 @@ return [
                 ],
             ],
         ],
+        [
+            'group' => 'Verwaltung',
+            'items' => [
+                [
+                    'label' => 'Mitarbeiter',
+                    'route' => 'people.employees.index',
+                    'icon'  => 'heroicon-o-users',
+                ],
+                [
+                    'label' => 'Skills',
+                    'route' => 'people.skills.index',
+                    'icon'  => 'heroicon-o-academic-cap',
+                ],
+            ],
+        ],
     ],
 ];

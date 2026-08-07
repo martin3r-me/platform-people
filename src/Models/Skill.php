@@ -61,4 +61,9 @@ class Skill extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function scopeForTeam($query, $teamId)
+    {
+        return $query->where('team_id', $teamId);
+    }
 }
