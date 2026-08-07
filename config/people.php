@@ -49,6 +49,11 @@ return [
                     'icon'  => 'heroicon-o-users',
                 ],
                 [
+                    'label' => 'Jobprofile',
+                    'route' => 'people.job-profiles.index',
+                    'icon'  => 'heroicon-o-identification',
+                ],
+                [
                     'label' => 'Skills',
                     'route' => 'people.skills.index',
                     'icon'  => 'heroicon-o-academic-cap',
