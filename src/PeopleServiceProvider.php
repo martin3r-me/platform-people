@@ -114,6 +114,30 @@ class PeopleServiceProvider extends ServiceProvider
             $registry->register(new \Platform\People\Tools\UpdateEmployeeSkillTool());
             $registry->register(new \Platform\People\Tools\RemoveEmployeeSkillTool());
             $registry->register(new \Platform\People\Tools\ListEmployeeSkillsTool());
+
+            // JobProfile-Katalog
+            $registry->register(new \Platform\People\Tools\CreateJobProfileTool());
+            $registry->register(new \Platform\People\Tools\UpdateJobProfileTool());
+            $registry->register(new \Platform\People\Tools\DeleteJobProfileTool());
+            $registry->register(new \Platform\People\Tools\ListJobProfilesTool());
+
+            // JobProfile-Rollen (weiche Org-Referenzen)
+            $registry->register(new \Platform\People\Tools\ListJobProfileRolesTool());
+            $registry->register(new \Platform\People\Tools\SyncJobProfileRolesTool());
+
+            // JobProfile-Skills (People-Katalog)
+            $registry->register(new \Platform\People\Tools\AssignJobProfileSkillTool());
+            $registry->register(new \Platform\People\Tools\UpdateJobProfileSkillTool());
+            $registry->register(new \Platform\People\Tools\RemoveJobProfileSkillTool());
+            $registry->register(new \Platform\People\Tools\ListJobProfileSkillsTool());
+
+            // Employee-JobProfile-Zuweisung
+            $registry->register(new \Platform\People\Tools\CreateEmployeeJobProfileTool());
+            $registry->register(new \Platform\People\Tools\UpdateEmployeeJobProfileTool());
+            $registry->register(new \Platform\People\Tools\DeleteEmployeeJobProfileTool());
+            $registry->register(new \Platform\People\Tools\ListEmployeeJobProfilesTool());
+            $registry->register(new \Platform\People\Tools\SyncEmployeeJobProfileRolesTool());
+            $registry->register(new \Platform\People\Tools\GetEmployeeJobProfileEffectiveRolesTool());
         } catch (\Throwable $e) {
             // Registry nicht verfügbar (z. B. in Tests/CLI ohne Core-Tools) — ignorieren.
         }
