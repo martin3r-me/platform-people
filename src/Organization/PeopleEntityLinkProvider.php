@@ -26,7 +26,7 @@ class PeopleEntityLinkProvider implements EntityLinkProvider
                 'label'    => 'Mitarbeiter',
                 'singular' => 'Mitarbeiter:in',
                 'icon'     => 'user',
-                'route'    => 'people.employees.index',
+                'route'    => 'people.employees.show',
             ],
         ];
     }

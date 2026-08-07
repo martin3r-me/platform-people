@@ -19,6 +19,9 @@ class PeopleServiceProvider extends ServiceProvider
     {
         // Config laden (Laravel Best Practice: in register())
         $this->mergeConfigFrom(__DIR__.'/../config/people.php', 'people');
+
+        // Personen-Verzeichnis-Registry (CRM liefert den Provider) — Singleton.
+        $this->app->singleton(\Platform\People\Services\ContactDirectoryRegistry::class);
     }
 
     public function boot(): void

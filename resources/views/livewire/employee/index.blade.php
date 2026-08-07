@@ -56,7 +56,9 @@
                 <tbody>
                     @forelse($this->employees as $employee)
                         <tr class="border-b border-[var(--ui-border)]/50 hover:bg-[var(--ui-muted-5)] transition-colors {{ $employee->status !== 'active' ? 'opacity-60' : '' }}">
-                            <td class="py-3 px-4 font-medium text-[var(--ui-secondary)]">{{ $employee->display_name }}</td>
+                            <td class="py-3 px-4 font-medium text-[var(--ui-secondary)]">
+                                <a href="{{ route('people.employees.show', $employee->id) }}" wire:navigate class="hover:text-[var(--ui-primary)] hover:underline">{{ $employee->display_name }}</a>
+                            </td>
                             <td class="py-3 px-4 text-[var(--ui-muted)] text-xs">{{ $employee->employee_number ?? '—' }}</td>
                             <td class="py-3 px-4 text-center">
                                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $employee->skills_count }}</span>
