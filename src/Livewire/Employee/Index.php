@@ -71,6 +71,12 @@ class Index extends Component
             ? (int) $this->form['org_entity_id']
             : null;
 
+        // people ist die Personal-Wurzel: beim Anlegen ohne gewählten Knoten selbst einen
+        // Org-Personen-Knoten erzeugen (statt dass practice o.ä. die Person anlegt).
+        if (!$this->editingId && $orgEntityId === null) {
+            $orgEntityId = $this->createPersonEntity(trim($this->form['display_name']), $teamId);
+        }
+
         // Über Model speichern (nicht Query-Builder), damit der saved-Hook den
         // dimension_link auf den Org-Personen-Knoten spiegelt.
         $employee = $this->editingId
@@ -110,6 +116,37 @@ class Index extends Component
         return view('people::livewire.employee.index', [
             'orgEntityOptions' => $this->orgEntityOptions(),
         ])->layout('platform::layouts.app');
+    }
+
+    /**
+     * Legt einen neuen Org-Personen-Knoten für den Mitarbeiter an (people = Personal-Wurzel).
+     * Guarded — organization optional; gibt null zurück, wenn nicht möglich.
+     */
+    protected function createPersonEntity(string $name, int $teamId): ?int
+    {
+        try {
+            $personTypeId = \Platform\Organization\Models\OrganizationEntityType::query()
+                ->where('code', 'person')->value('id');
+            if (!$personTypeId) {
+                return null;
+            }
+
+            $root = \Platform\Organization\Models\OrganizationEntity::query()
+                ->forTeam($teamId)->whereNull('parent_entity_id')->first();
+
+            $entity = \Platform\Organization\Models\OrganizationEntity::create([
+                'team_id'          => $teamId,
+                'user_id'          => (int) Auth::id(),
+                'name'             => $name !== '' ? $name : 'Mitarbeiter',
+                'entity_type_id'   => (int) $personTypeId,
+                'parent_entity_id' => $root?->id,
+                'is_active'        => true,
+            ]);
+
+            return (int) $entity->id;
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**

@@ -131,12 +131,12 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Personen-Knoten (Organization)</label>
                             <select wire:model="form.org_entity_id" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                <option value="">— nicht verknüpft —</option>
+                                <option value="">— neuen Person-Knoten anlegen —</option>
                                 @foreach($orgEntityOptions as $eid => $ename)
                                     <option value="{{ $eid }}">{{ $ename }}</option>
                                 @endforeach
                             </select>
-                            <p class="text-xs text-gray-400 mt-1">Verknüpft den Mitarbeiter graph-nativ mit seinem Personen-Knoten im Org-Baum.</p>
+                            <p class="text-xs text-gray-400 mt-1">Leer = people legt einen neuen Person-Knoten an (Personal-Wurzel). Oder bestehenden Knoten wählen.</p>
                         </div>
                     </div>
                     <div class="flex justify-end gap-2 mt-6">
