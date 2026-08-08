@@ -8,10 +8,10 @@
             ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
             ['label' => 'Jobprofile'],
         ]">
-            <x-ui-button variant="primary" size="sm" wire:click="openCreate">
+            <x-nx-button variant="primary" wire:click="openCreate">
                 @svg('heroicon-o-plus', 'w-4 h-4')
                 <span>Neu</span>
-            </x-ui-button>
+            </x-nx-button>
         </x-ui-page-actionbar>
     </x-slot>
 
@@ -19,27 +19,22 @@
         <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true" side="left">
             <div class="p-6 space-y-6">
                 <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-ui-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name..." class="w-full" size="sm" />
+                    <h3 class="text-sm font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Suche</h3>
+                    <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name..." size="sm" />
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Status</h3>
-                    <select wire:model.live="statusFilter" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                        <option value="">Alle Status</option>
-                        <option value="active">Aktiv</option>
-                        <option value="draft">Entwurf</option>
-                        <option value="archived">Archiviert</option>
-                    </select>
+                    <h3 class="text-sm font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Status</h3>
+                    <x-nx-input-select name="statusFilter" wire:model.live="statusFilter" nullable nullLabel="Alle Status" size="sm" :options="[
+                        ['value' => 'active', 'label' => 'Aktiv'],
+                        ['value' => 'draft', 'label' => 'Entwurf'],
+                        ['value' => 'archived', 'label' => 'Archiviert'],
+                    ]" />
                 </div>
                 @if(count($this->jobFamilies) > 0)
                     <div>
-                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Job-Family</h3>
-                        <select wire:model.live="jobFamilyFilter" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                            <option value="">Alle Families</option>
-                            @foreach($this->jobFamilies as $family)
-                                <option value="{{ $family }}">{{ $family }}</option>
-                            @endforeach
-                        </select>
+                        <h3 class="text-sm font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Job-Family</h3>
+                        <x-nx-input-select name="jobFamilyFilter" wire:model.live="jobFamilyFilter" nullable nullLabel="Alle Families" size="sm"
+                            :options="collect($this->jobFamilies)->map(fn($family) => ['value' => $family, 'label' => $family])->all()" />
                     </div>
                 @endif
             </div>
@@ -53,234 +48,188 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="bg-white rounded-lg border border-[var(--ui-border)]">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="text-xs text-[var(--ui-muted)] uppercase border-b border-[var(--ui-border)]">
-                        <th class="text-left py-3 px-4">Name</th>
-                        <th class="text-left py-3 px-4">Level</th>
-                        <th class="text-left py-3 px-4">Job-Family</th>
-                        <th class="text-center py-3 px-4">Rollen</th>
-                        <th class="text-center py-3 px-4">Skills</th>
-                        <th class="text-center py-3 px-4">Zuweisungen</th>
-                        <th class="text-center py-3 px-4">Status</th>
-                        <th class="text-right py-3 px-4">Aktionen</th>
-                    </tr>
-                </thead>
-                <tbody>
+        <x-nx-card flush>
+            <x-nx-table>
+                <x-nx-table-header>
+                    <x-nx-table-header-cell>Name</x-nx-table-header-cell>
+                    <x-nx-table-header-cell>Level</x-nx-table-header-cell>
+                    <x-nx-table-header-cell>Job-Family</x-nx-table-header-cell>
+                    <x-nx-table-header-cell align="center">Rollen</x-nx-table-header-cell>
+                    <x-nx-table-header-cell align="center">Skills</x-nx-table-header-cell>
+                    <x-nx-table-header-cell align="center">Zuweisungen</x-nx-table-header-cell>
+                    <x-nx-table-header-cell align="center">Status</x-nx-table-header-cell>
+                    <x-nx-table-header-cell align="right">Aktionen</x-nx-table-header-cell>
+                </x-nx-table-header>
+                <x-nx-table-body>
                     @forelse($this->jobProfiles as $profile)
                         @php
                             $statusConfig = [
                                 'active' => ['variant' => 'success', 'label' => 'Aktiv'],
                                 'draft' => ['variant' => 'info', 'label' => 'Entwurf'],
-                                'archived' => ['variant' => 'muted', 'label' => 'Archiviert'],
+                                'archived' => ['variant' => 'neutral', 'label' => 'Archiviert'],
                             ];
                             $sc = $statusConfig[$profile->status] ?? $statusConfig['draft'];
                         @endphp
-                        <tr class="border-b border-[var(--ui-border)]/50 hover:bg-[var(--ui-muted-5)] transition-colors {{ $profile->status === 'archived' ? 'opacity-60' : '' }}">
-                            <td class="py-3 px-4 font-medium text-[var(--ui-secondary)]">
-                                <a href="{{ route('people.job-profiles.show', $profile->id) }}" wire:navigate class="hover:text-[var(--ui-primary)] hover:underline">{{ $profile->name }}</a>
-                            </td>
-                            <td class="py-3 px-4 text-[var(--ui-muted)] text-xs">{{ $profile->level ?? '—' }}</td>
-                            <td class="py-3 px-4 text-[var(--ui-muted)] text-xs">{{ $profile->job_family ?? '—' }}</td>
-                            <td class="py-3 px-4 text-center">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $profile->roles_count }}</span>
-                            </td>
-                            <td class="py-3 px-4 text-center">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $profile->skill_records_count }}</span>
-                            </td>
-                            <td class="py-3 px-4 text-center">
-                                <button wire:click="toggleAssignments({{ $profile->id }})" class="inline-flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-[var(--ui-primary-5)] cursor-pointer">
-                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $profile->assignments_count }}</span>
+                        <x-nx-table-row class="{{ $profile->status === 'archived' ? 'opacity-60' : '' }}">
+                            <x-nx-table-cell class="font-medium">
+                                <a href="{{ route('people.job-profiles.show', $profile->id) }}" wire:navigate class="hover:text-[color:var(--nx-accent)] hover:underline">{{ $profile->name }}</a>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell class="text-[color:var(--nx-muted)] text-xs">{{ $profile->level ?? '—' }}</x-nx-table-cell>
+                            <x-nx-table-cell class="text-[color:var(--nx-muted)] text-xs">{{ $profile->job_family ?? '—' }}</x-nx-table-cell>
+                            <x-nx-table-cell align="center">
+                                <x-nx-badge>{{ $profile->roles_count }}</x-nx-badge>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell align="center">
+                                <x-nx-badge>{{ $profile->skill_records_count }}</x-nx-badge>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell align="center">
+                                <button wire:click="toggleAssignments({{ $profile->id }})" class="inline-flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-[color:var(--nx-hover)] cursor-pointer">
+                                    <x-nx-badge>{{ $profile->assignments_count }}</x-nx-badge>
                                     @if($expandedProfileId === $profile->id)
-                                        @svg('heroicon-o-chevron-up', 'w-3 h-3 text-[var(--ui-muted)]')
+                                        @svg('heroicon-o-chevron-up', 'w-3 h-3 text-[color:var(--nx-muted)]')
                                     @else
-                                        @svg('heroicon-o-chevron-down', 'w-3 h-3 text-[var(--ui-muted)]')
+                                        @svg('heroicon-o-chevron-down', 'w-3 h-3 text-[color:var(--nx-muted)]')
                                     @endif
                                 </button>
-                            </td>
-                            <td class="py-3 px-4 text-center">
-                                <x-ui-badge variant="{{ $sc['variant'] }}" size="sm">{{ $sc['label'] }}</x-ui-badge>
-                            </td>
-                            <td class="py-3 px-4 text-right">
+                            </x-nx-table-cell>
+                            <x-nx-table-cell align="center">
+                                <x-nx-badge variant="{{ $sc['variant'] }}" dot>{{ $sc['label'] }}</x-nx-badge>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell align="right">
                                 <div class="flex items-center justify-end gap-1">
-                                    <button wire:click="openEdit({{ $profile->id }})" class="p-1 text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors">
+                                    <x-nx-button variant="ghost" icon wire:click="openEdit({{ $profile->id }})">
                                         @svg('heroicon-o-pencil', 'w-4 h-4')
-                                    </button>
+                                    </x-nx-button>
                                     @if($profile->status === 'archived')
-                                        <button wire:click="unarchive({{ $profile->id }})" class="p-1 text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors" title="Reaktivieren">
+                                        <x-nx-button variant="ghost" icon wire:click="unarchive({{ $profile->id }})" title="Reaktivieren">
                                             @svg('heroicon-o-arrow-uturn-left', 'w-4 h-4')
-                                        </button>
+                                        </x-nx-button>
                                     @else
-                                        <button wire:click="archive({{ $profile->id }})" wire:confirm="Profil wirklich archivieren?" class="p-1 text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors" title="Archivieren">
+                                        <x-nx-button variant="ghost" icon wire:click="archive({{ $profile->id }})" wire:confirm="Profil wirklich archivieren?" title="Archivieren">
                                             @svg('heroicon-o-archive-box', 'w-4 h-4')
-                                        </button>
+                                        </x-nx-button>
                                     @endif
-                                    <button wire:click="delete({{ $profile->id }})" wire:confirm="Wirklich löschen?" class="p-1 text-[var(--ui-muted)] hover:text-red-500 transition-colors">
+                                    <x-nx-button variant="ghost" icon wire:click="delete({{ $profile->id }})" wire:confirm="Wirklich löschen?">
                                         @svg('heroicon-o-trash', 'w-4 h-4')
-                                    </button>
+                                    </x-nx-button>
                                 </div>
-                            </td>
-                        </tr>
+                            </x-nx-table-cell>
+                        </x-nx-table-row>
                         @if($expandedProfileId === $profile->id)
-                            <tr class="bg-[var(--ui-muted-5)]/50">
-                                <td colspan="8" class="py-4 px-6">
-                                    <h4 class="text-xs font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Zuweisungen</h4>
+                            <x-nx-table-row :hover="false" class="bg-[color:var(--nx-bg)]">
+                                <x-nx-table-cell colspan="8" class="py-4 px-6">
+                                    <h4 class="text-xs font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Zuweisungen</h4>
 
                                     @forelse($profile->assignments as $assignment)
-                                        <div class="flex items-center justify-between py-2 border-b border-[var(--ui-border)]/40 last:border-0">
+                                        <div class="flex items-center justify-between py-2 border-b border-[color:var(--nx-line)] last:border-0">
                                             <div class="flex items-center gap-3 text-sm">
-                                                <span class="font-medium text-[var(--ui-secondary)]">{{ $assignment->employee?->display_name ?? 'Mitarbeiter #' . $assignment->employee_id }}</span>
+                                                <span class="font-medium text-[color:var(--nx-text)]">{{ $assignment->employee?->display_name ?? 'Mitarbeiter #' . $assignment->employee_id }}</span>
                                                 @if($assignment->is_primary)
-                                                    <x-ui-badge variant="info" size="sm">Primär</x-ui-badge>
+                                                    <x-nx-badge variant="info">Primär</x-nx-badge>
                                                 @endif
                                                 @if($assignment->percentage !== null)
-                                                    <span class="text-xs text-[var(--ui-muted)]">{{ $assignment->percentage }}%</span>
+                                                    <span class="text-xs text-[color:var(--nx-muted)]">{{ $assignment->percentage }}%</span>
                                                 @endif
                                                 @if($assignment->valid_from)
-                                                    <span class="text-xs text-[var(--ui-muted)]">ab {{ $assignment->valid_from->format('d.m.Y') }}</span>
+                                                    <span class="text-xs text-[color:var(--nx-muted)]">ab {{ $assignment->valid_from->format('d.m.Y') }}</span>
                                                 @endif
                                                 @if($assignment->valid_to)
-                                                    <span class="text-xs text-[var(--ui-muted)]">bis {{ $assignment->valid_to->format('d.m.Y') }}</span>
+                                                    <span class="text-xs text-[color:var(--nx-muted)]">bis {{ $assignment->valid_to->format('d.m.Y') }}</span>
                                                 @endif
                                                 @if($assignment->note)
-                                                    <span class="text-xs text-[var(--ui-muted)] italic">{{ $assignment->note }}</span>
+                                                    <span class="text-xs text-[color:var(--nx-muted)] italic">{{ $assignment->note }}</span>
                                                 @endif
                                             </div>
-                                            <button wire:click="deleteAssignment({{ $assignment->id }})" wire:confirm="Zuweisung entfernen?" class="p-1 text-[var(--ui-muted)] hover:text-red-500 transition-colors">
+                                            <x-nx-button variant="ghost" icon wire:click="deleteAssignment({{ $assignment->id }})" wire:confirm="Zuweisung entfernen?">
                                                 @svg('heroicon-o-trash', 'w-4 h-4')
-                                            </button>
+                                            </x-nx-button>
                                         </div>
                                     @empty
-                                        <p class="text-sm text-[var(--ui-muted)] py-2">Noch keine Zuweisungen.</p>
+                                        <p class="text-sm text-[color:var(--nx-muted)] py-2">Noch keine Zuweisungen.</p>
                                     @endforelse
 
                                     {{-- Zuweisungs-Formular --}}
                                     <div class="mt-4 grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
                                         <div class="md:col-span-2">
-                                            <label class="block text-xs font-medium text-gray-600 mb-1">Mitarbeiter</label>
-                                            <select wire:model="assignForm.employee_id" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                                <option value="">— wählen —</option>
-                                                @foreach($this->employeeOptions as $eid => $ename)
-                                                    <option value="{{ $eid }}">{{ $ename }}</option>
-                                                @endforeach
-                                            </select>
+                                            <x-nx-input-select name="assignForm_employee_id" label="Mitarbeiter" wire:model="assignForm.employee_id" size="sm"
+                                                nullable nullLabel="— wählen —"
+                                                :options="collect($this->employeeOptions)->map(fn($ename, $eid) => ['value' => $eid, 'label' => $ename])->values()->all()" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-medium text-gray-600 mb-1">%</label>
-                                            <input type="number" min="0" max="100" wire:model="assignForm.percentage" class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
+                                            <x-nx-input-number name="assignForm_percentage" label="%" wire:model="assignForm.percentage" :min="0" :max="100" size="sm" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-medium text-gray-600 mb-1">Von</label>
-                                            <input type="date" wire:model="assignForm.valid_from" class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
+                                            <x-nx-input-date name="assignForm_valid_from" label="Von" wire:model="assignForm.valid_from" size="sm" />
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-medium text-gray-600 mb-1">Bis</label>
-                                            <input type="date" wire:model="assignForm.valid_to" class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
+                                            <x-nx-input-date name="assignForm_valid_to" label="Bis" wire:model="assignForm.valid_to" size="sm" />
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <label class="flex items-center gap-1 text-xs text-gray-600">
-                                                <input type="checkbox" wire:model="assignForm.is_primary" class="rounded border-gray-300" />
-                                                Primär
-                                            </label>
+                                            <x-nx-input-checkbox name="assignForm_is_primary" label="Primär" wire:model="assignForm.is_primary" />
                                         </div>
                                         <div class="md:col-span-5">
-                                            <label class="block text-xs font-medium text-gray-600 mb-1">Notiz</label>
-                                            <input type="text" wire:model="assignForm.note" placeholder="Optional" class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
+                                            <x-nx-input-text name="assignForm_note" label="Notiz" wire:model="assignForm.note" placeholder="Optional" size="sm" />
                                         </div>
                                         <div>
-                                            <x-ui-button variant="primary" size="sm" wire:click="storeAssignment">
+                                            <x-nx-button variant="primary" wire:click="storeAssignment">
                                                 @svg('heroicon-o-plus', 'w-4 h-4')
                                                 <span>Zuweisen</span>
-                                            </x-ui-button>
+                                            </x-nx-button>
                                         </div>
                                     </div>
-                                </td>
-                            </tr>
+                                </x-nx-table-cell>
+                            </x-nx-table-row>
                         @endif
                     @empty
-                        <tr>
-                            <td colspan="8" class="py-12 text-center text-[var(--ui-muted)]">
-                                <div class="flex flex-col items-center gap-2">
-                                    @svg('heroicon-o-identification', 'w-8 h-8 text-[var(--ui-muted)]')
-                                    <span>Noch keine Jobprofile.</span>
-                                    <x-ui-button variant="primary" size="sm" wire:click="openCreate">
-                                        @svg('heroicon-o-plus', 'w-4 h-4') Erstellen
-                                    </x-ui-button>
-                                </div>
-                            </td>
-                        </tr>
+                        <x-nx-table-row :hover="false">
+                            <x-nx-table-cell colspan="8">
+                                <x-nx-empty icon="heroicon-o-identification">
+                                    Noch keine Jobprofile.
+                                    <x-slot name="action">
+                                        <x-nx-button variant="primary" wire:click="openCreate">
+                                            @svg('heroicon-o-plus', 'w-4 h-4') Erstellen
+                                        </x-nx-button>
+                                    </x-slot>
+                                </x-nx-empty>
+                            </x-nx-table-cell>
+                        </x-nx-table-row>
                     @endforelse
-                </tbody>
-            </table>
-        </div>
+                </x-nx-table-body>
+            </x-nx-table>
+        </x-nx-card>
 
         {{-- Create/Edit Modal --}}
-        @if($showModal)
-            <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" wire:click.self="$set('showModal', false)">
-                <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">
-                        {{ $editingId ? 'Jobprofil bearbeiten' : 'Neues Jobprofil' }}
-                    </h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                            <input type="text" wire:model="form.name" class="w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="z.B. Senior Backend Engineer" />
-                            @error('form.name') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                                <input type="text" wire:model="form.level" class="w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="z.B. Senior" />
-                                @error('form.level') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Job-Family</label>
-                                <input type="text" wire:model="form.job_family" class="w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="z.B. Engineering" />
-                                @error('form.job_family') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select wire:model="form.status" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
-                                <option value="active">Aktiv</option>
-                                <option value="draft">Entwurf</option>
-                                <option value="archived">Archiviert</option>
-                            </select>
-                            @error('form.status') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
-                            <textarea wire:model="form.description" rows="3" class="w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="Optional"></textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Zweck</label>
-                            <textarea wire:model="form.purpose" rows="2" class="w-full rounded-md border-gray-300 shadow-sm text-sm" placeholder="Optional"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Gültig ab</label>
-                                <input type="date" wire:model="form.effective_from" class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
-                                @error('form.effective_from') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Gültig bis</label>
-                                <input type="date" wire:model="form.effective_to" class="w-full rounded-md border-gray-300 shadow-sm text-sm" />
-                                @error('form.effective_to') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end gap-2 mt-6">
-                        <x-ui-button variant="secondary-ghost" size="sm" wire:click="$set('showModal', false)">
-                            Abbrechen
-                        </x-ui-button>
-                        <x-ui-button variant="primary" size="sm" wire:click="save">
-                            @svg('heroicon-o-check', 'w-4 h-4')
-                            <span>{{ $editingId ? 'Speichern' : 'Erstellen' }}</span>
-                        </x-ui-button>
-                    </div>
+        <x-nx-modal size="md" wire:model="showModal">
+            <x-slot name="header">{{ $editingId ? 'Jobprofil bearbeiten' : 'Neues Jobprofil' }}</x-slot>
+            <div class="space-y-4">
+                <x-nx-input-text name="form_name" label="Name" wire:model="form.name" errorKey="form.name" placeholder="z.B. Senior Backend Engineer" />
+                <div class="grid grid-cols-2 gap-4">
+                    <x-nx-input-text name="form_level" label="Level" wire:model="form.level" errorKey="form.level" placeholder="z.B. Senior" />
+                    <x-nx-input-text name="form_job_family" label="Job-Family" wire:model="form.job_family" errorKey="form.job_family" placeholder="z.B. Engineering" />
+                </div>
+                <x-nx-input-select name="form_status" label="Status" wire:model="form.status" errorKey="form.status" :options="[
+                    ['value' => 'active', 'label' => 'Aktiv'],
+                    ['value' => 'draft', 'label' => 'Entwurf'],
+                    ['value' => 'archived', 'label' => 'Archiviert'],
+                ]" />
+                <x-nx-input-textarea name="form_description" label="Beschreibung" wire:model="form.description" :rows="3" placeholder="Optional" />
+                <x-nx-input-textarea name="form_purpose" label="Zweck" wire:model="form.purpose" :rows="2" placeholder="Optional" />
+                <div class="grid grid-cols-2 gap-4">
+                    <x-nx-input-date name="form_effective_from" label="Gültig ab" wire:model="form.effective_from" errorKey="form.effective_from" />
+                    <x-nx-input-date name="form_effective_to" label="Gültig bis" wire:model="form.effective_to" errorKey="form.effective_to" />
                 </div>
             </div>
-        @endif
+            <x-slot name="footer">
+                <div class="flex justify-end gap-2">
+                    <x-nx-button variant="ghost" wire:click="$set('showModal', false)">
+                        Abbrechen
+                    </x-nx-button>
+                    <x-nx-button variant="primary" wire:click="save">
+                        @svg('heroicon-o-check', 'w-4 h-4')
+                        <span>{{ $editingId ? 'Speichern' : 'Erstellen' }}</span>
+                    </x-nx-button>
+                </div>
+            </x-slot>
+        </x-nx-modal>
     </x-ui-page-container>
 </x-ui-page>
