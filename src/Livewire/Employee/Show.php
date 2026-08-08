@@ -81,6 +81,19 @@ class Show extends Component
             'annual_vacation_days' => '', 'wage_type' => '', 'gross_amount' => '',
             'work_location' => '', 'note' => '',
         ];
+
+        // Arbeitgeber aus abgeleitetem Org-Carrier vorschlagen (falls als Employer gepflegt).
+        $employee = $this->resolve($this->employeeId);
+        $ctx = (new OrgContextResolver())->resolve($employee->org_entity_id);
+        if ($ctx['carrier']) {
+            $suggested = Employer::forTeam($employee->team_id)
+                ->where('org_entity_id', $ctx['carrier']['id'])->first();
+            if ($suggested) {
+                $this->empForm['employer_id'] = (string) $suggested->id;
+                $this->updatedEmpFormEmployerId((string) $suggested->id);
+            }
+        }
+
         $this->showEmpModal = true;
     }
 

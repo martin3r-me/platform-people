@@ -43,7 +43,12 @@
                                 <div><dt class="text-[var(--ui-muted)] text-xs">Carrier</dt><dd class="text-[var(--ui-secondary)]">{{ $orgContext['carrier']['name'] }}</dd></div>
                             @endif
                             @if($orgContext['department'])
-                                <div><dt class="text-[var(--ui-muted)] text-xs">Abteilung</dt><dd class="text-[var(--ui-secondary)]">{{ $orgContext['department']['name'] }}</dd></div>
+                                <div>
+                                    <dt class="text-[var(--ui-muted)] text-xs">Abteilung</dt>
+                                    <dd class="text-[var(--ui-secondary)]">{{ $orgContext['department']['name'] }}
+                                        @if(!empty($orgContext['source']))<span class="text-[10px] text-[var(--ui-muted)]">({{ $orgContext['source'] }})</span>@endif
+                                    </dd>
+                                </div>
                             @endif
                         </dl>
                         <p class="text-[10px] text-[var(--ui-muted)] mt-2 italic">abgeleitet aus dem Org-Graphen</p>
