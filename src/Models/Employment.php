@@ -24,20 +24,45 @@ class Employment extends Model
         'employment_type',
         'fte',
         'weekly_hours',
+        'weekly_days',
         'started_on',
         'ended_on',
         'status',
+        'is_fixed_term',
+        'fixed_term_end_date',
+        'probation_end_date',
+        'annual_vacation_days',
+        'wage_type',
+        'gross_amount',
+        'work_location',
         'note',
     ];
 
     protected $casts = [
         'fte' => 'decimal:2',
         'weekly_hours' => 'decimal:2',
+        'weekly_days' => 'decimal:1',
         'started_on' => 'date',
         'ended_on' => 'date',
+        'is_fixed_term' => 'boolean',
+        'fixed_term_end_date' => 'date',
+        'probation_end_date' => 'date',
+        'annual_vacation_days' => 'integer',
+        'gross_amount' => 'decimal:2',
     ];
 
     public const TYPES = ['regular', 'part_time', 'temporary', 'marginal', 'freelance'];
+
+    public const WAGE_TYPES = ['salary', 'hourly'];
+
+    /** Lesbare Labels für die Anstellungsart. */
+    public const TYPE_LABELS = [
+        'regular'   => 'Vollzeit',
+        'part_time' => 'Teilzeit',
+        'temporary' => 'Befristet',
+        'marginal'  => 'Minijob',
+        'freelance' => 'Freelance',
+    ];
 
     protected static function booted(): void
     {

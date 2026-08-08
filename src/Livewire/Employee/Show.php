@@ -6,14 +6,16 @@ use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\People\Models\Employee as EmployeeModel;
+use Platform\People\Models\Employment;
+use Platform\People\Models\EmployeeJobProfile;
 use Platform\People\Support\PersonProfile;
 use Platform\People\Support\OrganizationLink;
 use Platform\People\Services\ContactDirectoryRegistry;
 
 /**
- * Employee/Show — Steckbrief eines Mitarbeiters. Zeigt Basis-Stammdaten + (graph-nativ)
- * die am Personen-Knoten hängende CRM-Kontakt-Anreicherung und den „Mit CRM verknüpfen"-
- * Flow. Spiegelbild von customer Company/Show.
+ * Employee/Show — Steckbrief eines Mitarbeiters: Anstellung (Arbeitsvertrag),
+ * Skills, Jobprofile und (graph-nativ) die CRM-Kontakt-Anreicherung am
+ * Personen-Knoten inkl. „Mit CRM verknüpfen"-Flow.
  */
 class Show extends Component
 {
@@ -25,6 +27,27 @@ class Show extends Component
     public string $crmSearch = '';
     public array $crmResults = [];
     public string $newContactName = '';
+
+    // Anstellung (Arbeitsvertrag)
+    public bool $showEmpModal = false;
+    public ?int $editingEmpId = null;
+    public array $empForm = [
+        'employment_type'      => 'regular',
+        'status'               => 'active',
+        'started_on'           => '',
+        'ended_on'             => '',
+        'is_fixed_term'        => false,
+        'fixed_term_end_date'  => '',
+        'probation_end_date'   => '',
+        'fte'                  => '',
+        'weekly_hours'         => '',
+        'weekly_days'          => '',
+        'annual_vacation_days' => '',
+        'wage_type'            => '',
+        'gross_amount'         => '',
+        'work_location'        => '',
+        'note'                 => '',
+    ];
 
     public function mount(int $employee): void
     {
@@ -43,6 +66,99 @@ class Show extends Component
         return (int) Auth::user()->currentTeam->id;
     }
 
+    // ── Anstellung / Arbeitsvertrag ──────────────────────────────────────
+    public function openEmpCreate(): void
+    {
+        $this->editingEmpId = null;
+        $this->empForm = [
+            'employment_type' => 'regular', 'status' => 'active',
+            'started_on' => '', 'ended_on' => '', 'is_fixed_term' => false,
+            'fixed_term_end_date' => '', 'probation_end_date' => '',
+            'fte' => '', 'weekly_hours' => '', 'weekly_days' => '',
+            'annual_vacation_days' => '', 'wage_type' => '', 'gross_amount' => '',
+            'work_location' => '', 'note' => '',
+        ];
+        $this->showEmpModal = true;
+    }
+
+    public function openEmpEdit(int $id): void
+    {
+        $emp = Employment::where('employee_id', $this->employeeId)->findOrFail($id);
+        $this->editingEmpId = $id;
+        $this->empForm = [
+            'employment_type'      => $emp->employment_type,
+            'status'               => $emp->status,
+            'started_on'           => optional($emp->started_on)->format('Y-m-d') ?? '',
+            'ended_on'             => optional($emp->ended_on)->format('Y-m-d') ?? '',
+            'is_fixed_term'        => (bool) $emp->is_fixed_term,
+            'fixed_term_end_date'  => optional($emp->fixed_term_end_date)->format('Y-m-d') ?? '',
+            'probation_end_date'   => optional($emp->probation_end_date)->format('Y-m-d') ?? '',
+            'fte'                  => $emp->fte ?? '',
+            'weekly_hours'         => $emp->weekly_hours ?? '',
+            'weekly_days'          => $emp->weekly_days ?? '',
+            'annual_vacation_days' => $emp->annual_vacation_days ?? '',
+            'wage_type'            => $emp->wage_type ?? '',
+            'gross_amount'         => $emp->gross_amount ?? '',
+            'work_location'        => $emp->work_location ?? '',
+            'note'                 => $emp->note ?? '',
+        ];
+        $this->showEmpModal = true;
+    }
+
+    public function saveEmployment(): void
+    {
+        $this->validate([
+            'empForm.employment_type' => 'required|in:regular,part_time,temporary,marginal,freelance',
+            'empForm.status'          => 'required|in:active,ended',
+            'empForm.started_on'      => 'nullable|date',
+            'empForm.ended_on'        => 'nullable|date',
+            'empForm.wage_type'       => 'nullable|in:salary,hourly',
+            'empForm.gross_amount'    => 'nullable|numeric|min:0',
+            'empForm.annual_vacation_days' => 'nullable|integer|min:0|max:365',
+        ]);
+
+        $employee = $this->resolve($this->employeeId);
+
+        $data = [
+            'team_id'              => $employee->team_id,
+            'employee_id'          => $employee->id,
+            'employment_type'      => $this->empForm['employment_type'],
+            'status'               => $this->empForm['status'],
+            'started_on'           => $this->empForm['started_on'] ?: null,
+            'ended_on'             => $this->empForm['ended_on'] ?: null,
+            'is_fixed_term'        => (bool) $this->empForm['is_fixed_term'],
+            'fixed_term_end_date'  => $this->empForm['fixed_term_end_date'] ?: null,
+            'probation_end_date'   => $this->empForm['probation_end_date'] ?: null,
+            'fte'                  => $this->empForm['fte'] !== '' ? $this->empForm['fte'] : null,
+            'weekly_hours'         => $this->empForm['weekly_hours'] !== '' ? $this->empForm['weekly_hours'] : null,
+            'weekly_days'          => $this->empForm['weekly_days'] !== '' ? $this->empForm['weekly_days'] : null,
+            'annual_vacation_days' => $this->empForm['annual_vacation_days'] !== '' ? (int) $this->empForm['annual_vacation_days'] : null,
+            'wage_type'            => $this->empForm['wage_type'] ?: null,
+            'gross_amount'         => $this->empForm['gross_amount'] !== '' ? $this->empForm['gross_amount'] : null,
+            'work_location'        => trim((string) $this->empForm['work_location']) ?: null,
+            'note'                 => trim((string) $this->empForm['note']) ?: null,
+        ];
+
+        if ($this->editingEmpId) {
+            Employment::where('employee_id', $employee->id)->where('id', $this->editingEmpId)->update($data);
+            $msg = 'Anstellung gespeichert';
+        } else {
+            Employment::create($data);
+            $msg = 'Anstellung angelegt';
+        }
+
+        $this->showEmpModal = false;
+        $this->editingEmpId = null;
+        $this->dispatch('toast', message: $msg);
+    }
+
+    public function deleteEmployment(int $id): void
+    {
+        Employment::where('employee_id', $this->employeeId)->where('id', $id)->delete();
+        $this->dispatch('toast', message: 'Anstellung entfernt');
+    }
+
+    // ── CRM-Verknüpfung ──────────────────────────────────────────────────
     protected function directory()
     {
         try {
@@ -108,12 +224,23 @@ class Show extends Component
     {
         $employee = $this->resolve($this->employeeId)->loadCount('skills');
 
+        $employments = Employment::where('employee_id', $employee->id)
+            ->orderByDesc('started_on')->get();
+
+        $skills = $employee->skills()->with('skill')->get();
+
+        $assignments = EmployeeJobProfile::where('employee_id', $employee->id)
+            ->with('jobProfile')->get();
+
         $crmProfile = $employee->org_entity_id
             ? PersonProfile::crmForEntity((int) $employee->org_entity_id)
             : null;
 
         return view('people::livewire.employee.show', [
             'employee'           => $employee,
+            'employments'        => $employments,
+            'skills'             => $skills,
+            'assignments'        => $assignments,
             'crmProfile'         => $crmProfile,
             'directoryAvailable' => $this->directory() !== null,
         ])->layout('platform::layouts.app');
