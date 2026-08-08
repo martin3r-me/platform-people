@@ -18,6 +18,10 @@
             @svg('heroicon-o-users', 'w-4 h-4 text-[var(--nx-text)]')
             <span class="ml-2 text-sm">Mitarbeiter</span>
         </x-ui-sidebar-item>
+        <x-ui-sidebar-item :href="route('people.employers.index')">
+            @svg('heroicon-o-building-office-2', 'w-4 h-4 text-[var(--nx-text)]')
+            <span class="ml-2 text-sm">Arbeitgeber</span>
+        </x-ui-sidebar-item>
         <x-ui-sidebar-item :href="route('people.job-profiles.index')">
             @svg('heroicon-o-identification', 'w-4 h-4 text-[var(--nx-text)]')
             <span class="ml-2 text-sm">Jobprofile</span>
@@ -36,6 +40,9 @@
             </a>
             <a href="{{ route('people.employees.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
                 @svg('heroicon-o-users', 'w-5 h-5')
+            </a>
+            <a href="{{ route('people.employers.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
+                @svg('heroicon-o-building-office-2', 'w-5 h-5')
             </a>
             <a href="{{ route('people.job-profiles.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
                 @svg('heroicon-o-identification', 'w-5 h-5')

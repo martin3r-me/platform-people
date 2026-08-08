@@ -21,6 +21,8 @@ class Employment extends Model
         'uuid',
         'team_id',
         'employee_id',
+        'employer_id',
+        'department_entity_id',
         'employment_type',
         'fte',
         'weekly_hours',
@@ -84,6 +86,11 @@ class Employment extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id');
+    }
+
+    public function employer(): BelongsTo
+    {
+        return $this->belongsTo(Employer::class, 'employer_id');
     }
 
     public function scopeActive($query)

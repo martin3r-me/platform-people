@@ -33,6 +33,22 @@
                     <div><dt class="text-[var(--ui-muted)] text-xs uppercase tracking-wide">Anstellungen</dt><dd class="text-[var(--ui-secondary)]">{{ $employments->count() }}</dd></div>
                     <div><dt class="text-[var(--ui-muted)] text-xs uppercase tracking-wide">Personen-Knoten</dt><dd class="text-[var(--ui-secondary)]">{{ $employee->org_entity_id ? ('#' . $employee->org_entity_id) : '— nicht verknüpft —' }}</dd></div>
                 </dl>
+
+                {{-- Aus Org abgeleitete Perspektive --}}
+                @if($orgContext['carrier'] || $orgContext['department'])
+                    <div class="pt-4 border-t border-[var(--ui-border)]">
+                        <h3 class="text-[var(--ui-muted)] text-xs uppercase tracking-wide mb-2">Perspektive (aus Org)</h3>
+                        <dl class="space-y-2">
+                            @if($orgContext['carrier'])
+                                <div><dt class="text-[var(--ui-muted)] text-xs">Carrier</dt><dd class="text-[var(--ui-secondary)]">{{ $orgContext['carrier']['name'] }}</dd></div>
+                            @endif
+                            @if($orgContext['department'])
+                                <div><dt class="text-[var(--ui-muted)] text-xs">Abteilung</dt><dd class="text-[var(--ui-secondary)]">{{ $orgContext['department']['name'] }}</dd></div>
+                            @endif
+                        </dl>
+                        <p class="text-[10px] text-[var(--ui-muted)] mt-2 italic">abgeleitet aus dem Org-Graphen</p>
+                    </div>
+                @endif
             </div>
         </x-ui-page-sidebar>
     </x-slot>
@@ -59,6 +75,7 @@
                         <div class="space-y-1">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-[var(--ui-secondary)]">{{ \Platform\People\Models\Employment::TYPE_LABELS[$emp->employment_type] ?? $emp->employment_type }}</span>
+                                @if($emp->employer)<span class="text-xs text-[var(--ui-muted)]">· {{ $emp->employer->name }}</span>@endif
                                 @if($emp->is_fixed_term)<x-ui-badge variant="warning" size="sm">befristet</x-ui-badge>@endif
                                 <x-ui-badge variant="{{ $emp->status === 'active' ? 'success' : 'muted' }}" size="sm">{{ $emp->status === 'active' ? 'Aktiv' : 'Beendet' }}</x-ui-badge>
                             </div>
@@ -153,6 +170,18 @@
             <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
                 <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">{{ $editingEmpId ? 'Arbeitsvertrag bearbeiten' : 'Neuer Arbeitsvertrag' }}</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Arbeitgeber</label>
+                        <select wire:model.live="empForm.employer_id" class="w-full rounded-md border-gray-300 shadow-sm text-sm">
+                            <option value="">— kein —</option>
+                            @foreach($employers as $er)
+                                <option value="{{ $er->id }}">{{ $er->name }}</option>
+                            @endforeach
+                        </select>
+                        @if($employers->isEmpty())
+                            <p class="text-xs text-[var(--ui-muted)] mt-1">Noch keine Arbeitgeber angelegt — unter „Arbeitgeber" pflegen (belegt Vertragsfelder vor).</p>
+                        @endif
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Art</label>
                         <select wire:model="empForm.employment_type" class="w-full rounded-md border-gray-300 shadow-sm text-sm">

@@ -6,10 +6,12 @@ use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\People\Models\Employee as EmployeeModel;
+use Platform\People\Models\Employer;
 use Platform\People\Models\Employment;
 use Platform\People\Models\EmployeeJobProfile;
 use Platform\People\Support\PersonProfile;
 use Platform\People\Support\OrganizationLink;
+use Platform\People\Support\OrgContextResolver;
 use Platform\People\Services\ContactDirectoryRegistry;
 
 /**
@@ -32,6 +34,7 @@ class Show extends Component
     public bool $showEmpModal = false;
     public ?int $editingEmpId = null;
     public array $empForm = [
+        'employer_id'          => '',
         'employment_type'      => 'regular',
         'status'               => 'active',
         'started_on'           => '',
@@ -71,7 +74,7 @@ class Show extends Component
     {
         $this->editingEmpId = null;
         $this->empForm = [
-            'employment_type' => 'regular', 'status' => 'active',
+            'employer_id' => '', 'employment_type' => 'regular', 'status' => 'active',
             'started_on' => '', 'ended_on' => '', 'is_fixed_term' => false,
             'fixed_term_end_date' => '', 'probation_end_date' => '',
             'fte' => '', 'weekly_hours' => '', 'weekly_days' => '',
@@ -86,6 +89,7 @@ class Show extends Component
         $emp = Employment::where('employee_id', $this->employeeId)->findOrFail($id);
         $this->editingEmpId = $id;
         $this->empForm = [
+            'employer_id'          => $emp->employer_id ? (string) $emp->employer_id : '',
             'employment_type'      => $emp->employment_type,
             'status'               => $emp->status,
             'started_on'           => optional($emp->started_on)->format('Y-m-d') ?? '',
@@ -122,6 +126,7 @@ class Show extends Component
         $data = [
             'team_id'              => $employee->team_id,
             'employee_id'          => $employee->id,
+            'employer_id'          => ($this->empForm['employer_id'] !== '' && ctype_digit((string) $this->empForm['employer_id'])) ? (int) $this->empForm['employer_id'] : null,
             'employment_type'      => $this->empForm['employment_type'],
             'status'               => $this->empForm['status'],
             'started_on'           => $this->empForm['started_on'] ?: null,
@@ -156,6 +161,24 @@ class Show extends Component
     {
         Employment::where('employee_id', $this->employeeId)->where('id', $id)->delete();
         $this->dispatch('toast', message: 'Anstellung entfernt');
+    }
+
+    /** Bei Arbeitgeber-Wahl leere Vertragsfelder mit dessen Defaults vorbelegen. */
+    public function updatedEmpFormEmployerId($value): void
+    {
+        if ($value === '' || ! ctype_digit((string) $value)) {
+            return;
+        }
+        $employer = Employer::forTeam($this->team())->find((int) $value);
+        if (! $employer) {
+            return;
+        }
+        if (($this->empForm['annual_vacation_days'] === '' || $this->empForm['annual_vacation_days'] === null) && $employer->default_vacation_days !== null) {
+            $this->empForm['annual_vacation_days'] = $employer->default_vacation_days;
+        }
+        if (($this->empForm['weekly_hours'] === '' || $this->empForm['weekly_hours'] === null) && $employer->default_weekly_hours !== null) {
+            $this->empForm['weekly_hours'] = $employer->default_weekly_hours;
+        }
     }
 
     // ── CRM-Verknüpfung ──────────────────────────────────────────────────
@@ -225,12 +248,16 @@ class Show extends Component
         $employee = $this->resolve($this->employeeId)->loadCount('skills');
 
         $employments = Employment::where('employee_id', $employee->id)
-            ->orderByDesc('started_on')->get();
+            ->with('employer')->orderByDesc('started_on')->get();
 
         $skills = $employee->skills()->with('skill')->get();
 
         $assignments = EmployeeJobProfile::where('employee_id', $employee->id)
             ->with('jobProfile')->get();
+
+        $employers = Employer::forTeam($employee->team_id)->active()->orderBy('name')->get();
+
+        $orgContext = (new OrgContextResolver())->resolve($employee->org_entity_id);
 
         $crmProfile = $employee->org_entity_id
             ? PersonProfile::crmForEntity((int) $employee->org_entity_id)
@@ -241,6 +268,8 @@ class Show extends Component
             'employments'        => $employments,
             'skills'             => $skills,
             'assignments'        => $assignments,
+            'employers'          => $employers,
+            'orgContext'         => $orgContext,
             'crmProfile'         => $crmProfile,
             'directoryAvailable' => $this->directory() !== null,
         ])->layout('platform::layouts.app');

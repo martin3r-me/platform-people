@@ -49,6 +49,11 @@ return [
                     'icon'  => 'heroicon-o-users',
                 ],
                 [
+                    'label' => 'Arbeitgeber',
+                    'route' => 'people.employers.index',
+                    'icon'  => 'heroicon-o-building-office-2',
+                ],
+                [
                     'label' => 'Jobprofile',
                     'route' => 'people.job-profiles.index',
                     'icon'  => 'heroicon-o-identification',
