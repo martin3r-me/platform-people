@@ -46,6 +46,7 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                 'work_model'         => ['type' => 'object', 'description' => 'Arbeitsmodell: {"type": "remote|hybrid|onsite|travel", "travel_required": bool, "self_organized": bool, "location_notes": "..."}'],
                 'reporting'          => ['type' => 'object', 'description' => 'Reporting: {"reports_to": "...", "autonomy_level": "full|guided|supervised"}'],
                 'status'             => ['type' => 'string'],
+                'owner_entity_id'    => ['type' => 'integer', 'description' => 'Org-Entity, die diese Stelle TRÄGT (weiche Referenz auf organization_entities.id). Der Agent-Endpoint /api/org/agent/profile löst darüber „mein Profil" auf. 0 = Verknüpfung entfernen.'],
                 'effective_from'   => ['type' => 'string'],
                 'effective_to'     => ['type' => 'string'],
             ],
@@ -106,6 +107,11 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                     $val = (string) ($arguments[$field] ?? '');
                     $update[$field] = $val === '' ? null : $val;
                 }
+            }
+            // Eigentümer-Entity (weiche Org-Referenz): >0 setzen, 0/leer = Verknüpfung entfernen.
+            if (array_key_exists('owner_entity_id', $arguments)) {
+                $oid = (int) ($arguments['owner_entity_id'] ?? 0);
+                $update['owner_entity_id'] = $oid > 0 ? $oid : null;
             }
 
             if (! empty($update)) {

@@ -44,6 +44,7 @@ class CreateJobProfileTool implements ToolContract, ToolMetadataContract
                 'work_model'         => ['type' => 'object', 'description' => 'Optional: Arbeitsmodell. Format: {"type": "remote|hybrid|onsite|travel", "travel_required": bool, "self_organized": bool, "location_notes": "..."}'],
                 'reporting'          => ['type' => 'object', 'description' => 'Optional: Reporting-Linie. Format: {"reports_to": "CTO / Entity-Name", "autonomy_level": "full|guided|supervised"}'],
                 'status'             => ['type' => 'string', 'description' => 'Optional: active/archived/draft. Default: active.'],
+                'owner_entity_id'    => ['type' => 'integer', 'description' => 'Optional: Org-Entity, die diese Stelle TRÄGT (weiche Referenz auf organization_entities.id). Der Agent-Endpoint /api/org/agent/profile löst darüber „mein Profil" auf.'],
                 'effective_from'   => ['type' => 'string', 'description' => 'Optional: Gültig ab (YYYY-MM-DD).'],
                 'effective_to'     => ['type' => 'string', 'description' => 'Optional: Gültig bis (YYYY-MM-DD).'],
             ],
@@ -83,6 +84,7 @@ class CreateJobProfileTool implements ToolContract, ToolMetadataContract
                 'work_model'         => (isset($arguments['work_model']) && is_array($arguments['work_model'])) ? $arguments['work_model'] : null,
                 'reporting'          => (isset($arguments['reporting']) && is_array($arguments['reporting'])) ? $arguments['reporting'] : null,
                 'status'             => ($arguments['status'] ?? 'active'),
+                'owner_entity_id'    => (isset($arguments['owner_entity_id']) && (int) $arguments['owner_entity_id'] > 0) ? (int) $arguments['owner_entity_id'] : null,
                 'effective_from'   => ($arguments['effective_from'] ?? null) ?: null,
                 'effective_to'     => ($arguments['effective_to'] ?? null) ?: null,
             ]);
