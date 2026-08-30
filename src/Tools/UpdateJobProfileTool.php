@@ -37,6 +37,7 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                 'job_family'       => ['type' => 'string', 'description' => 'Laufbahn/Kategorie. "" zum Leeren.'],
                 'content'          => ['type' => 'string', 'description' => '"" zum Leeren.'],
                 'level'            => ['type' => 'string'],
+                'vsm_level'        => ['type' => 'array', 'description' => 'VSM-Funktions-Stufe(n) als Liste: ["S1"] / ["S4"] / ["S2","S3","S3star"] (eine Rolle kann mehrere tragen). Treibt rollen-gescopte Sinne im Daemon (Pulse nur für S2↑).'],
                 'skills'           => ['type' => 'array', 'description' => 'Strukturierte Skills: [{"name": "...", "level": "basic|advanced|expert", "category": "technical|methodical|domain"}]'],
                 'responsibilities' => ['type' => 'array', 'description' => 'Verantwortungen: [{"name": "...", "is_core": true}]'],
                 'requirements'     => ['type' => 'array', 'description' => 'Qualifikationen: [{"name": "...", "type": "degree|certification|experience", "required": true}]'],
@@ -97,7 +98,7 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                     $update[$field] = $val === '' ? null : $val;
                 }
             }
-            foreach (['skills', 'responsibilities', 'requirements', 'soft_skills', 'kpis', 'exclusion_criteria', 'work_model', 'reporting'] as $field) {
+            foreach (['vsm_level', 'skills', 'responsibilities', 'requirements', 'soft_skills', 'kpis', 'exclusion_criteria', 'work_model', 'reporting'] as $field) {
                 if (array_key_exists($field, $arguments)) {
                     $update[$field] = is_array($arguments[$field]) ? $arguments[$field] : null;
                 }

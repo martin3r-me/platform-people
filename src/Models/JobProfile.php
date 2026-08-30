@@ -33,6 +33,7 @@ class JobProfile extends Model
         'job_family',
         'content',
         'level',
+        'vsm_level',
         'skills',
         'responsibilities',
         'requirements',
@@ -48,6 +49,7 @@ class JobProfile extends Model
     ];
 
     protected $casts = [
+        'vsm_level'          => 'array',
         'skills'             => 'array',
         'responsibilities'   => 'array',
         'requirements'       => 'array',
