@@ -28,7 +28,7 @@ class ListJobProfilesTool implements ToolContract, ToolMetadataContract
     public function getSchema(): array
     {
         return $this->mergeSchemas(
-            $this->getStandardGetSchema(['team_id', 'status', 'level', 'job_family']),
+            $this->getStandardGetSchema(['team_id', 'status', 'level', 'job_family', 'owner_entity_id']),
             [
                 'properties' => [
                     'team_id' => [
@@ -46,6 +46,10 @@ class ListJobProfilesTool implements ToolContract, ToolMetadataContract
                     'job_family' => [
                         'type' => 'string',
                         'description' => 'Optional: Filter nach job_family (z.B. Engineering, Operations, Sales).',
+                    ],
+                    'owner_entity_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Owner-Entity (z.B. Agent-Entity). Auch über filters=[{field: owner_entity_id, ...}] nutzbar.',
                     ],
                 ],
             ]
@@ -74,12 +78,16 @@ class ListJobProfilesTool implements ToolContract, ToolMetadataContract
                 $q->where('job_family', (string) $arguments['job_family']);
             }
 
-            $this->applyStandardFilters($q, $arguments, ['team_id', 'status', 'level', 'job_family', 'created_at']);
+            if (! empty($arguments['owner_entity_id'])) {
+                $q->where('owner_entity_id', (int) $arguments['owner_entity_id']);
+            }
+
+            $this->applyStandardFilters($q, $arguments, ['team_id', 'status', 'level', 'job_family', 'owner_entity_id', 'created_at']);
             $this->applyStandardSearch($q, $arguments, ['name', 'description', 'content']);
             $this->applyStandardSort($q, $arguments, ['name', 'level', 'status', 'job_family', 'id', 'created_at'], 'name', 'asc');
 
             $result = $this->applyStandardPaginationResult($q, $arguments);
-            $result['data']->load(['skillRecords']);
+            $result['data']->load(['skillRecords', 'ownerEntity.linkedUser']);
             $items = $result['data']->map(fn (JobProfile $jp) => [
                 'id'               => $jp->id,
                 'uuid'             => $jp->uuid,
@@ -104,6 +112,10 @@ class ListJobProfilesTool implements ToolContract, ToolMetadataContract
                     'level' => $s->pivot->level, 'is_required' => (bool) $s->pivot->is_required,
                 ])->values(),
                 'team_id'          => $jp->team_id,
+                'owner_entity_id'  => $jp->owner_entity_id,
+                'owner_name'       => $jp->ownerEntity?->name,
+                'owner_user_id'    => $jp->ownerEntity?->linked_user_id,
+                'owner_user_name'  => $jp->ownerEntity?->linkedUser?->name,
             ])->values()->toArray();
 
             return ToolResult::success([
