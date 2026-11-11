@@ -116,6 +116,7 @@ class ListJobProfilesTool implements ToolContract, ToolMetadataContract
                 'owner_name'       => $jp->ownerEntity?->name,
                 'owner_user_id'    => $jp->ownerEntity?->linked_user_id,
                 'owner_user_name'  => $jp->ownerEntity?->linkedUser?->name,
+                'vsm_level'        => $jp->vsm_level ?? [],
             ])->values()->toArray();
 
             return ToolResult::success([
