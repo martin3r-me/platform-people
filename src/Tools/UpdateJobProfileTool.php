@@ -109,12 +109,13 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                     $update[$field] = $val === '' ? null : $val;
                 }
             }
-            if (! empty($update)) {
-                $jp->update($update);
-            }
             // Einheit (Org-Wahrheit als dimension_link): >0 setzen, 0/leer = Verknüpfung entfernen.
+            // Zuerst setzen — eine ungültige Einheit bricht ab, bevor irgendetwas geändert ist.
             if (array_key_exists('unit_entity_id', $arguments)) {
                 $jp->setUnit((int) ($arguments['unit_entity_id'] ?? 0));
+            }
+            if (! empty($update)) {
+                $jp->update($update);
             }
             $jp->refresh();
 
@@ -128,6 +129,8 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                 'unit_entity_id' => $jp->unitEntityId(),
                 'message' => 'JobProfile erfolgreich aktualisiert.',
             ]);
+        } catch (\InvalidArgumentException $e) {
+            return ToolResult::error('VALIDATION_ERROR', $e->getMessage());
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Aktualisieren des JobProfiles: '.$e->getMessage());
         }

@@ -92,13 +92,39 @@ class JobProfile extends Model
      * Einheit (Firma/Abteilung), zu der die Stelle gehört. Die Wahrheit liegt in der Organisation:
      * gespeichert ist das als dimension_link der Stelle auf den Einheits-Knoten, nicht als Spalte.
      */
+    /** Knoten-Typen, die eine Stelle tragen können (Organisationseinheiten, keine Personen/Agenten/Umwelt). */
+    public const UNIT_TYPES = ['business_unit', 'venture_builder', 'venture', 'service_line', 'strategic_partner',
+        'capability_area', 'container', 'board', 'group'];
+
+    /**
+     * Einheiten des Teams, an die eine Stelle gehören kann (guarded — organization optional).
+     *
+     * @return array<int,string> [entity_id => name]
+     */
+    public static function unitOptions(int $teamId): array
+    {
+        try {
+            return \Platform\Organization\Models\OrganizationEntity::query()
+                ->forTeam($teamId)->where('is_active', true)
+                ->whereHas('type', fn ($q) => $q->whereIn('code', self::UNIT_TYPES))
+                ->orderBy('name')->limit(500)
+                ->pluck('name', 'id')->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     public function unitEntityId(): ?int
     {
         return \Platform\People\Support\OrganizationLink::entityOf('people_job_profile', (int) $this->id);
     }
 
+    /** @throws \InvalidArgumentException wenn der Knoten keine Einheit des Teams ist */
     public function setUnit(?int $entityId): void
     {
+        if ($entityId && $entityId > 0 && ! array_key_exists($entityId, self::unitOptions((int) $this->team_id))) {
+            throw new \InvalidArgumentException("Knoten {$entityId} ist keine Einheit (Firma/Abteilung/Venture …) dieses Teams.");
+        }
         \Platform\People\Support\OrganizationLink::sync('people_job_profile', (int) $this->id,
             $entityId && $entityId > 0 ? $entityId : null, $this->team_id ? (int) $this->team_id : null, auth()->id());
     }

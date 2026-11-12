@@ -67,6 +67,11 @@ class CreateJobProfileTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('VALIDATION_ERROR', 'name ist erforderlich.');
             }
 
+            $unit = (int) ($arguments['unit_entity_id'] ?? 0);
+            if ($unit > 0 && ! array_key_exists($unit, JobProfile::unitOptions($rootTeamId))) {
+                return ToolResult::error('VALIDATION_ERROR', "unit_entity_id {$unit} ist keine Einheit (Firma/Abteilung/Venture …) dieses Teams.");
+            }
+
             $jp = JobProfile::create([
                 'team_id'          => $rootTeamId,
                 'user_id'          => $context->user?->id,
@@ -90,8 +95,8 @@ class CreateJobProfileTool implements ToolContract, ToolMetadataContract
                 'effective_to'     => ($arguments['effective_to'] ?? null) ?: null,
             ]);
 
-            if (! empty($arguments['unit_entity_id'])) {
-                $jp->setUnit((int) $arguments['unit_entity_id']);
+            if ($unit > 0) {
+                $jp->setUnit($unit);
             }
 
             return ToolResult::success([
@@ -104,6 +109,8 @@ class CreateJobProfileTool implements ToolContract, ToolMetadataContract
                 'unit_entity_id' => $jp->unitEntityId(),
                 'message' => 'JobProfile erfolgreich erstellt.',
             ]);
+        } catch (\InvalidArgumentException $e) {
+            return ToolResult::error('VALIDATION_ERROR', $e->getMessage());
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Erstellen des JobProfiles: '.$e->getMessage());
         }

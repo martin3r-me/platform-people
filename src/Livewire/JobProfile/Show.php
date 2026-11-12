@@ -37,24 +37,10 @@ class Show extends Component
         $this->dispatch('toast', message: $id ? 'Einheit gesetzt' : 'Einheit entfernt');
     }
 
-    /**
-     * Einheiten des Teams, an die eine Stelle gehören kann: alle Knoten außer Personen und Agenten
-     * (guarded — organization optional).
-     *
-     * @return array<int,string>
-     */
+    /** @return array<int,string> */
     public function unitOptions(): array
     {
-        try {
-            return \Platform\Organization\Models\OrganizationEntity::query()
-                ->forTeam((int) Auth::user()->currentTeam->id)
-                ->where('is_active', true)
-                ->whereDoesntHave('type', fn ($q) => $q->whereIn('code', ['person', 'agent']))
-                ->orderBy('name')->limit(500)
-                ->pluck('name', 'id')->all();
-        } catch (\Throwable $e) {
-            return [];
-        }
+        return JobProfile::unitOptions((int) Auth::user()->currentTeam->id);
     }
 
     #[Computed]
