@@ -25,7 +25,10 @@
                     @php
                         $sc = ['active' => ['success','Aktiv'], 'inactive' => ['neutral','Inaktiv'], 'left' => ['danger','Ausgeschieden']][$employee->status] ?? ['neutral', $employee->status];
                     @endphp
-                    <x-nx-badge variant="{{ $sc[0] }}" dot>{{ $sc[1] }}</x-nx-badge>
+                    <div class="flex items-center gap-1">
+                        <x-nx-badge variant="{{ $sc[0] }}" dot>{{ $sc[1] }}</x-nx-badge>
+                        @if($employee->isAgent())<x-nx-badge variant="info">Agent</x-nx-badge>@endif
+                    </div>
                 </div>
                 <div class="space-y-1">
                     <x-nx-property-row icon="heroicon-o-identification" label="Personalnummer">{{ $employee->employee_number ?? '—' }}</x-nx-property-row>
@@ -189,6 +192,7 @@
                 ['value' => 'temporary', 'label' => 'Befristet'],
                 ['value' => 'marginal', 'label' => 'Minijob'],
                 ['value' => 'freelance', 'label' => 'Freelance'],
+                ['value' => 'agent', 'label' => 'Agent'],
             ]" />
             <x-nx-input-select name="empForm_status" label="Status" wire:model="empForm.status" :options="[
                 ['value' => 'active', 'label' => 'Aktiv'],

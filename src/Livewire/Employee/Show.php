@@ -125,7 +125,7 @@ class Show extends Component
     public function saveEmployment(): void
     {
         $this->validate([
-            'empForm.employment_type' => 'required|in:regular,part_time,temporary,marginal,freelance',
+            'empForm.employment_type' => 'required|in:' . implode(',', Employment::TYPES),
             'empForm.status'          => 'required|in:active,ended',
             'empForm.started_on'      => 'nullable|date',
             'empForm.ended_on'        => 'nullable|date',

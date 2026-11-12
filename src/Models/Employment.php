@@ -53,7 +53,7 @@ class Employment extends Model
         'gross_amount' => 'decimal:2',
     ];
 
-    public const TYPES = ['regular', 'part_time', 'temporary', 'marginal', 'freelance'];
+    public const TYPES = ['regular', 'part_time', 'temporary', 'marginal', 'freelance', 'agent'];
 
     public const WAGE_TYPES = ['salary', 'hourly'];
 
@@ -64,6 +64,7 @@ class Employment extends Model
         'temporary' => 'Befristet',
         'marginal'  => 'Minijob',
         'freelance' => 'Freelance',
+        'agent'     => 'Agent',
     ];
 
     protected static function booted(): void

@@ -8,6 +8,12 @@
             ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
             ['label' => 'Mitarbeiter'],
         ]">
+            @if($agentsToAdopt > 0)
+                <x-nx-button variant="ghost" size="sm" wire:click="adoptAgents" title="Agenten der Organisation als Mitarbeiter führen">
+                    @svg('heroicon-o-cpu-chip', 'w-4 h-4')
+                    <span>{{ $agentsToAdopt }} {{ $agentsToAdopt === 1 ? 'Agent' : 'Agenten' }} übernehmen</span>
+                </x-nx-button>
+            @endif
             <x-nx-button variant="primary" size="sm" wire:click="openCreate">
                 @svg('heroicon-o-plus', 'w-4 h-4')
                 <span>Neu</span>
@@ -21,6 +27,13 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
                     <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name..." size="sm" />
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Art</h3>
+                    <x-nx-input-select name="kindFilter" wire:model.live="kindFilter"
+                        nullable nullLabel="Alle"
+                        :options="\Platform\People\Models\Employee::KIND_LABELS"
+                        size="sm" />
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Status</h3>
@@ -54,6 +67,7 @@
                         <x-nx-table-row class="{{ $employee->status !== 'active' ? 'opacity-60' : '' }}">
                             <x-nx-table-cell>
                                 <a href="{{ route('people.employees.show', $employee->id) }}" wire:navigate class="font-medium text-[color:var(--nx-text)] hover:text-[color:var(--nx-accent)] hover:underline">{{ $employee->display_name }}</a>
+                                @if($employee->isAgent())<x-nx-badge variant="info" class="ml-1">Agent</x-nx-badge>@endif
                             </x-nx-table-cell>
                             <x-nx-table-cell>{{ $employee->employee_number ?? '—' }}</x-nx-table-cell>
                             <x-nx-table-cell align="center">

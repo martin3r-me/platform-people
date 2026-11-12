@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Symfony\Component\Uid\UuidV7;
 
 /**
- * Employee — Stammsatz des angestellten Menschen.
+ * Employee — Stammsatz eines Mitarbeiters: Mensch oder Agent (Engram), unterschieden über `kind`.
  *
  * Join-Anker zwischen den Projektionen einer Person: `user` (Platform-User) und
  * `org_entity_id` (Organization-Person-Entity, weiche Referenz ohne FK).
@@ -27,9 +27,14 @@ class Employee extends Model
         'user_id',
         'org_entity_id',
         'display_name',
+        'kind',
         'employee_number',
         'status',
     ];
+
+    public const KINDS = ['human', 'agent'];
+
+    public const KIND_LABELS = ['human' => 'Mensch', 'agent' => 'Agent'];
 
     protected static function booted(): void
     {
@@ -95,6 +100,16 @@ class Employee extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function scopeAgents($query)
+    {
+        return $query->where('kind', 'agent');
+    }
+
+    public function isAgent(): bool
+    {
+        return $this->kind === 'agent';
     }
 
     public function scopeForTeam($query, $teamId)

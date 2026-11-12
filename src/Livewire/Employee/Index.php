@@ -11,6 +11,7 @@ class Index extends Component
 {
     public string $search = '';
     public string $statusFilter = '';
+    public string $kindFilter = '';
 
     public bool $showModal = false;
     public ?int $editingId = null;
@@ -30,6 +31,7 @@ class Index extends Component
             ->withCount('skills')
             ->when($this->search, fn ($q) => $q->where('display_name', 'like', '%' . $this->search . '%'))
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
+            ->when($this->kindFilter, fn ($q) => $q->where('kind', $this->kindFilter))
             ->orderBy('display_name')
             ->get();
     }
@@ -120,7 +122,59 @@ class Index extends Component
     {
         return view('people::livewire.employee.index', [
             'orgEntityOptions' => $this->orgEntityOptions(),
+            'agentsToAdopt' => count($this->unadoptedAgents()),
         ])->layout('platform::layouts.app');
+    }
+
+    /**
+     * Agenten (Engrams) der Organisation als Mitarbeiter führen: je Agent-Knoten ohne Mitarbeiter-Satz
+     * ein Employee (kind=agent, verknüpfter User + Knoten) und eine Anstellung ab seiner Geburt —
+     * so laufen Stelle, Skills und Entwicklung für Agenten über dieselben Wege wie für Menschen.
+     */
+    public function adoptAgents(): void
+    {
+        $teamId = (int) Auth::user()->currentTeam->id;
+        $n = 0;
+        foreach ($this->unadoptedAgents() as $agent) {
+            $employee = new Employee(['team_id' => $teamId]);
+            $employee->fill([
+                'display_name'  => (string) $agent->name,
+                'kind'          => 'agent',
+                'status'        => $agent->is_active ? 'active' : 'inactive',
+                'org_entity_id' => (int) $agent->id,
+                'user_id'       => $agent->linked_user_id ? (int) $agent->linked_user_id : null,
+            ]);
+            $employee->team_id = $teamId;
+            $employee->save();
+
+            \Platform\People\Models\Employment::create([
+                'team_id'         => $teamId,
+                'employee_id'     => $employee->id,
+                'employment_type' => 'agent',
+                'status'          => 'active',
+                'started_on'      => $agent->created_at?->toDateString(),
+            ]);
+            $n++;
+        }
+
+        unset($this->employees);
+        $this->dispatch('toast', message: $n === 1 ? '1 Agent übernommen' : "{$n} Agenten übernommen");
+    }
+
+    /**
+     * Agent-Knoten des Teams, die noch keinen Mitarbeiter-Satz haben (guarded — organization optional).
+     */
+    protected function unadoptedAgents(): array
+    {
+        try {
+            $teamId = (int) Auth::user()->currentTeam->id;
+            $known = Employee::withTrashed()->forTeam($teamId)->whereNotNull('org_entity_id')->pluck('org_entity_id')->all();
+
+            return \Platform\Organization\Models\OrganizationEntity::query()
+                ->forTeam($teamId)->agents()->whereNotIn('id', $known)->orderBy('name')->get()->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     /**
