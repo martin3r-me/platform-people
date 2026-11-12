@@ -43,7 +43,6 @@ class JobProfile extends Model
         'work_model',
         'reporting',
         'status',
-        'owner_entity_id',
         'effective_from',
         'effective_to',
     ];
@@ -72,6 +71,11 @@ class JobProfile extends Model
                 $model->uuid = $uuid;
             }
         });
+
+        // Gelöschte Stelle verlässt ihre Einheit — kein Phantom im Stellenplan.
+        static::deleted(function (self $model) {
+            $model->setUnit(null);
+        });
     }
 
     public function team(): BelongsTo
@@ -85,11 +89,18 @@ class JobProfile extends Model
     }
 
     /**
-     * Eigentümer-Knoten im Org-Graph (weiche Referenz auf organization_entities).
+     * Einheit (Firma/Abteilung), zu der die Stelle gehört. Die Wahrheit liegt in der Organisation:
+     * gespeichert ist das als dimension_link der Stelle auf den Einheits-Knoten, nicht als Spalte.
      */
-    public function ownerEntity(): BelongsTo
+    public function unitEntityId(): ?int
     {
-        return $this->belongsTo(\Platform\Organization\Models\OrganizationEntity::class, 'owner_entity_id');
+        return \Platform\People\Support\OrganizationLink::entityOf('people_job_profile', (int) $this->id);
+    }
+
+    public function setUnit(?int $entityId): void
+    {
+        \Platform\People\Support\OrganizationLink::sync('people_job_profile', (int) $this->id,
+            $entityId && $entityId > 0 ? $entityId : null, $this->team_id ? (int) $this->team_id : null, auth()->id());
     }
 
     public function assignments(): HasMany

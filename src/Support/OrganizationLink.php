@@ -55,4 +55,43 @@ class OrganizationLink
             // organization nicht verfügbar / Sync-Fehler — Save nicht blockieren.
         }
     }
+
+    /** Der Org-Knoten, an dem ein people-Objekt hängt (null = nicht verknüpft / organization fehlt). */
+    public static function entityOf(string $contextAlias, int $contextId): ?int
+    {
+        return self::entitiesOf($contextAlias, [$contextId])[$contextId] ?? null;
+    }
+
+    /** @return array<int,int> [context_id => entity_id] */
+    public static function entitiesOf(string $contextAlias, array $contextIds): array
+    {
+        $contextIds = array_values(array_unique(array_filter(array_map('intval', $contextIds))));
+        if (! $contextIds) {
+            return [];
+        }
+        try {
+            $def = OrganizationDimensionDefinition::findByKey('entity');
+            if (! $def) {
+                return [];
+            }
+            $links = OrganizationDimensionLink::query()
+                ->where('dimension_definition_id', $def->id)
+                ->where('linkable_type', DimensionLinkService::resolveContextType($contextAlias))
+                ->whereIn('linkable_id', $contextIds)
+                ->get(['linkable_id', 'dimension_value_id']);
+            $sources = OrganizationDimensionValue::query()->whereIn('id', $links->pluck('dimension_value_id'))->get()
+                ->mapWithKeys(fn ($v) => [(int) $v->id => (int) ($v->metadata['source_entity_id'] ?? 0)]);
+            $out = [];
+            foreach ($links as $l) {
+                $entityId = $sources[(int) $l->dimension_value_id] ?? 0;
+                if ($entityId > 0) {
+                    $out[(int) $l->linkable_id] = $entityId;
+                }
+            }
+
+            return $out;
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
 }

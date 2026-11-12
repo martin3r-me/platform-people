@@ -82,7 +82,6 @@ class ImportJobProfilesCommand extends Command
                 'work_model'         => $jp->work_model,
                 'reporting'          => $jp->reporting,
                 'status'             => $jp->status,
-                'owner_entity_id'    => $jp->owner_entity_id,
                 'effective_from'     => $jp->effective_from,
                 'effective_to'       => $jp->effective_to,
                 'created_at'         => $jp->created_at ?? $now,

@@ -29,6 +29,7 @@ class PeopleServiceProvider extends ServiceProvider
         // Eigene Modelle über stabile Aliase morphbar machen (dimension_links / Cross-Modul).
         Relation::morphMap([
             'people_employee' => Employee::class,
+            'people_job_profile' => \Platform\People\Models\JobProfile::class,
         ]);
 
         // Modul registrieren

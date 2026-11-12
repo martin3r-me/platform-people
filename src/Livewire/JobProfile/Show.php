@@ -11,6 +11,9 @@ class Show extends Component
 {
     public JobProfile $jobProfile;
 
+    /** Einheit (Firma/Abteilung) der Stelle — lebt als dimension_link in der Organisation. */
+    public string $unitId = '';
+
     public function mount(JobProfile $jobProfile): void
     {
         abort_unless(
@@ -19,6 +22,39 @@ class Show extends Component
         );
 
         $this->jobProfile = $jobProfile;
+        $this->unitId = (string) ($jobProfile->unitEntityId() ?? '');
+    }
+
+    public function updatedUnitId(): void
+    {
+        $id = ctype_digit($this->unitId) ? (int) $this->unitId : null;
+        if ($id !== null && ! array_key_exists($id, $this->unitOptions())) {
+            $this->unitId = (string) ($this->jobProfile->unitEntityId() ?? '');
+
+            return;
+        }
+        $this->jobProfile->setUnit($id);
+        $this->dispatch('toast', message: $id ? 'Einheit gesetzt' : 'Einheit entfernt');
+    }
+
+    /**
+     * Einheiten des Teams, an die eine Stelle gehören kann: alle Knoten außer Personen und Agenten
+     * (guarded — organization optional).
+     *
+     * @return array<int,string>
+     */
+    public function unitOptions(): array
+    {
+        try {
+            return \Platform\Organization\Models\OrganizationEntity::query()
+                ->forTeam((int) Auth::user()->currentTeam->id)
+                ->where('is_active', true)
+                ->whereDoesntHave('type', fn ($q) => $q->whereIn('code', ['person', 'agent']))
+                ->orderBy('name')->limit(500)
+                ->pluck('name', 'id')->all();
+        } catch (\Throwable $e) {
+            return [];
+        }
     }
 
     #[Computed]
@@ -68,7 +104,7 @@ class Show extends Component
 
     public function render()
     {
-        return view('people::livewire.job-profile.show')
+        return view('people::livewire.job-profile.show', ['unitOptions' => $this->unitOptions()])
             ->layout('platform::layouts.app');
     }
 }

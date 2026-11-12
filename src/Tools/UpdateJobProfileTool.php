@@ -47,7 +47,7 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                 'work_model'         => ['type' => 'object', 'description' => 'Arbeitsmodell: {"type": "remote|hybrid|onsite|travel", "travel_required": bool, "self_organized": bool, "location_notes": "..."}'],
                 'reporting'          => ['type' => 'object', 'description' => 'Reporting: {"reports_to": "...", "autonomy_level": "full|guided|supervised"}'],
                 'status'             => ['type' => 'string'],
-                'owner_entity_id'    => ['type' => 'integer', 'description' => 'Org-Entity, die diese Stelle TRÄGT (weiche Referenz auf organization_entities.id). Der Agent-Endpoint /api/org/agent/profile löst darüber „mein Profil" auf. 0 = Verknüpfung entfernen.'],
+                'unit_entity_id'     => ['type' => 'integer', 'description' => 'Einheit (Firma/Abteilung, Org-Entity-ID), zu der die Stelle gehört — als dimension_link in der Organisation. Wer die Stelle TRÄGT, steht nicht hier, sondern in people.employee_job_profiles. 0 = Verknüpfung entfernen.'],
                 'effective_from'   => ['type' => 'string'],
                 'effective_to'     => ['type' => 'string'],
             ],
@@ -109,14 +109,12 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                     $update[$field] = $val === '' ? null : $val;
                 }
             }
-            // Eigentümer-Entity (weiche Org-Referenz): >0 setzen, 0/leer = Verknüpfung entfernen.
-            if (array_key_exists('owner_entity_id', $arguments)) {
-                $oid = (int) ($arguments['owner_entity_id'] ?? 0);
-                $update['owner_entity_id'] = $oid > 0 ? $oid : null;
-            }
-
             if (! empty($update)) {
                 $jp->update($update);
+            }
+            // Einheit (Org-Wahrheit als dimension_link): >0 setzen, 0/leer = Verknüpfung entfernen.
+            if (array_key_exists('unit_entity_id', $arguments)) {
+                $jp->setUnit((int) ($arguments['unit_entity_id'] ?? 0));
             }
             $jp->refresh();
 
@@ -127,6 +125,7 @@ class UpdateJobProfileTool implements ToolContract, ToolMetadataContract
                 'level'   => $jp->level,
                 'status'  => $jp->status,
                 'team_id' => $jp->team_id,
+                'unit_entity_id' => $jp->unitEntityId(),
                 'message' => 'JobProfile erfolgreich aktualisiert.',
             ]);
         } catch (\Throwable $e) {

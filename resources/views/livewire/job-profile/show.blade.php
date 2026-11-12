@@ -21,6 +21,15 @@
                     </x-nx-badge>
                 </x-nx-property-row>
 
+                {{-- Einheit (Org-Wahrheit) --}}
+                <div class="pb-3">
+                    <x-nx-input-select name="unitId" label="Gehört zur Einheit" wire:model.live="unitId"
+                        nullable nullLabel="— keine Einheit —"
+                        :options="$unitOptions"
+                        hint="Firma oder Abteilung; daraus ergibt sich der Stellenplan in der Organisation."
+                        size="sm" />
+                </div>
+
                 {{-- Level --}}
                 @if($jobProfile->level)
                     <x-nx-property-row icon="heroicon-o-chart-bar-square" label="Level">

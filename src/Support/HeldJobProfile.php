@@ -11,8 +11,6 @@ use Platform\People\Models\JobProfile;
  * Knoten → Mitarbeiter (org_entity_id) → gültige Zuweisung (Hauptprofil zuerst, dann Anteil) → aktives Profil.
  * Für Menschen und Agenten gleich. Einstiegspunkt für andere Module (organization fragt hier, statt
  * people-Tabellen selbst zu lesen).
- *
- * Übergang: Profile, die noch per owner_entity_id an einem Knoten hängen, werden als Rückfall gefunden.
  */
 class HeldJobProfile
 {
@@ -47,13 +45,6 @@ class HeldJobProfile
             }
         }
 
-        $missing = array_diff($entityIds, array_keys($out));
-        if ($missing) {
-            JobProfile::query()->whereIn('owner_entity_id', $missing)->where('status', 'active')->orderByDesc('id')->get()
-                ->each(function (JobProfile $jp) use (&$out) {
-                    $out[(int) $jp->owner_entity_id] ??= $jp;
-                });
-        }
 
         return $out;
     }
