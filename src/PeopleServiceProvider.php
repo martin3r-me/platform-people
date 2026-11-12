@@ -109,6 +109,10 @@ class PeopleServiceProvider extends ServiceProvider
             $registry->register(new \Platform\People\Tools\DeleteSkillTool());
             $registry->register(new \Platform\People\Tools\ListSkillsTool());
 
+            // Mitarbeiter (Menschen + Agenten)
+            $registry->register(new \Platform\People\Tools\ListEmployeesTool());
+            $registry->register(new \Platform\People\Tools\AdoptAgentsTool());
+
             // Employee-Skill-Zuordnung (Fähigkeits-Bestand)
             $registry->register(new \Platform\People\Tools\AssignEmployeeSkillTool());
             $registry->register(new \Platform\People\Tools\UpdateEmployeeSkillTool());

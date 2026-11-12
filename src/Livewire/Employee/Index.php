@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Platform\People\Models\Employee;
+use Platform\People\Services\AgentAdoption;
 
 class Index extends Component
 {
@@ -122,59 +123,17 @@ class Index extends Component
     {
         return view('people::livewire.employee.index', [
             'orgEntityOptions' => $this->orgEntityOptions(),
-            'agentsToAdopt' => count($this->unadoptedAgents()),
+            'agentsToAdopt' => count(app(AgentAdoption::class)->pending((int) Auth::user()->currentTeam->id)),
         ])->layout('platform::layouts.app');
     }
 
-    /**
-     * Agenten (Engrams) der Organisation als Mitarbeiter führen: je Agent-Knoten ohne Mitarbeiter-Satz
-     * ein Employee (kind=agent, verknüpfter User + Knoten) und eine Anstellung ab seiner Geburt —
-     * so laufen Stelle, Skills und Entwicklung für Agenten über dieselben Wege wie für Menschen.
-     */
+    /** Agenten der Organisation als Mitarbeiter übernehmen (siehe AgentAdoption). */
     public function adoptAgents(): void
     {
-        $teamId = (int) Auth::user()->currentTeam->id;
-        $n = 0;
-        foreach ($this->unadoptedAgents() as $agent) {
-            $employee = new Employee(['team_id' => $teamId]);
-            $employee->fill([
-                'display_name'  => (string) $agent->name,
-                'kind'          => 'agent',
-                'status'        => $agent->is_active ? 'active' : 'inactive',
-                'org_entity_id' => (int) $agent->id,
-                'user_id'       => $agent->linked_user_id ? (int) $agent->linked_user_id : null,
-            ]);
-            $employee->team_id = $teamId;
-            $employee->save();
-
-            \Platform\People\Models\Employment::create([
-                'team_id'         => $teamId,
-                'employee_id'     => $employee->id,
-                'employment_type' => 'agent',
-                'status'          => 'active',
-                'started_on'      => $agent->created_at?->toDateString(),
-            ]);
-            $n++;
-        }
+        $n = count(app(AgentAdoption::class)->adopt((int) Auth::user()->currentTeam->id));
 
         unset($this->employees);
         $this->dispatch('toast', message: $n === 1 ? '1 Agent übernommen' : "{$n} Agenten übernommen");
-    }
-
-    /**
-     * Agent-Knoten des Teams, die noch keinen Mitarbeiter-Satz haben (guarded — organization optional).
-     */
-    protected function unadoptedAgents(): array
-    {
-        try {
-            $teamId = (int) Auth::user()->currentTeam->id;
-            $known = Employee::withTrashed()->forTeam($teamId)->whereNotNull('org_entity_id')->pluck('org_entity_id')->all();
-
-            return \Platform\Organization\Models\OrganizationEntity::query()
-                ->forTeam($teamId)->agents()->whereNotIn('id', $known)->orderBy('name')->get()->all();
-        } catch (\Throwable $e) {
-            return [];
-        }
     }
 
     /**
