@@ -29,7 +29,7 @@ class Index extends Component
         $teamId = Auth::user()->currentTeam->id;
 
         return Employee::forTeam($teamId)
-            ->withCount('skills')
+            ->with(['employments' => fn ($q) => $q->orderBy('started_on')])
             ->when($this->search, fn ($q) => $q->where('display_name', 'like', '%' . $this->search . '%'))
             ->when($this->statusFilter, fn ($q) => $q->where('status', $this->statusFilter))
             ->when($this->kindFilter, fn ($q) => $q->where('kind', $this->kindFilter))
@@ -130,7 +130,8 @@ class Index extends Component
     public function render()
     {
         return view('people::livewire.employee.index', [
-            'orgEntityOptions' => $this->orgEntityOptions(),
+            'orgEntityOptions' => collect($this->orgEntityOptions())->map(fn ($name, $id) => ['value' => $id, 'label' => $name])->values()->all(),
+            'positions' => \Platform\People\Support\PositionSummary::forEmployees($this->employees->pluck('id')->all()),
             'agentsToAdopt' => count(app(AgentAdoption::class)->pending((int) Auth::user()->currentTeam->id)),
         ])->layout('platform::layouts.app');
     }

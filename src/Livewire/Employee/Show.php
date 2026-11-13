@@ -67,6 +67,30 @@ class Show extends Component
         $this->tab = in_array($tab, ['uebersicht', 'gedaechtnis'], true) ? $tab : 'uebersicht';
     }
 
+    /** Berichtslinie aus der Organisation (Berichtet an → Leitung der Einheit) — guarded. */
+    protected function supervisorOf(EmployeeModel $employee): ?array
+    {
+        if (! $employee->org_entity_id || ! class_exists(\Platform\Organization\Services\AgentSupervisor::class)) {
+            return null;
+        }
+        try {
+            $entity = \Platform\Organization\Models\OrganizationEntity::find((int) $employee->org_entity_id);
+
+            return $entity ? app(\Platform\Organization\Services\AgentSupervisor::class)->resolve($entity, null) : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /** Mitarbeiter entfernen (Model-Delete, damit der deleted-Hook den dimension_link löst). */
+    public function deleteEmployee()
+    {
+        $this->resolve($this->employeeId)->delete();
+        $this->dispatch('toast', message: 'Mitarbeiter entfernt');
+
+        return $this->redirectRoute('people.employees.index', navigate: true);
+    }
+
     protected function resolve(int $id): EmployeeModel
     {
         $teamId = Auth::user()->currentTeam->id;
@@ -292,6 +316,8 @@ class Show extends Component
         return view('people::livewire.employee.show', [
             'employee'           => $employee,
             'developmentCard'    => $this->tab === 'uebersicht' ? (new \Platform\People\Services\DevelopmentCard())->forEmployee($employee) : null,
+            'position'           => \Platform\People\Support\PositionSummary::forEmployees([$employee->id])[$employee->id] ?? null,
+            'supervisor'         => $this->supervisorOf($employee),
             'employments'        => $employments,
             'skills'             => $skills,
             'assignments'        => $assignments,

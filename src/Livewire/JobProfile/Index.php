@@ -285,7 +285,13 @@ class Index extends Component
 
     public function render()
     {
-        return view('people::livewire.job-profile.index')
+        // Stellenplan: nach Bereich (Einheit in der Organisation) gruppiert, Stellen ohne Bereich zuletzt.
+        $units = \Platform\People\Support\PositionSummary::unitsOf($this->jobProfiles->pluck('id')->all());
+        $groups = $this->jobProfiles
+            ->groupBy(fn ($p) => $units[$p->id]['name'] ?? '')
+            ->sortKeysUsing(fn ($a, $b) => [$a === '', $a] <=> [$b === '', $b]);
+
+        return view('people::livewire.job-profile.index', ['groups' => $groups])
             ->layout('platform::layouts.app');
     }
 }

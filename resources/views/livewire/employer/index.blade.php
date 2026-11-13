@@ -78,7 +78,7 @@
                 <div>
                     <x-nx-input-select name="form.org_entity_id" label="Org-Carrier" wire:model.live="form.org_entity_id"
                         nullable nullLabel="— kein / manuell —"
-                        :options="$this->carrierOptions"
+                        :options="collect($this->carrierOptions)->map(fn ($name, $id) => ['value' => $id, 'label' => $name])->values()->all()"
                         size="sm" />
                     @if(empty($this->carrierOptions))
                         <p class="text-xs text-[color:var(--nx-muted)] mt-1">Keine Carrier gefunden (Organization-Modul nicht verfügbar oder keine Carrier gepflegt).</p>

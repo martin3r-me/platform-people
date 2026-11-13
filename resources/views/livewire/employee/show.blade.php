@@ -11,40 +11,59 @@
             <x-slot:create>
                 <x-people::menu-item icon="heroicon-o-briefcase" wire:click="openEmpCreate">Arbeitsvertrag</x-people::menu-item>
             </x-slot:create>
-            @if($employee->org_entity_id && $directoryAvailable)
-                <x-slot:more>
+            <x-slot:more>
+                @if(! $employee->isAgent() && $employee->org_entity_id && $directoryAvailable)
                     <x-people::menu-item icon="heroicon-o-link" wire:click="openCrmLink">Mit CRM verknüpfen</x-people::menu-item>
-                </x-slot:more>
-            @endif
+                @endif
+                <x-people::menu-item icon="heroicon-o-trash" danger wire:click="deleteEmployee" wire:confirm="Mitarbeiter wirklich entfernen? Stellen und Anstellungen bleiben im Verlauf erhalten.">Mitarbeiter entfernen</x-people::menu-item>
+            </x-slot:more>
         </x-people::actionbar>
     </x-slot>
 
 
     <x-people::body>
-        {{-- Kopf: wer, Status, Stammdaten, Perspektive aus der Organisation --}}
         @php
             $sc = ['active' => ['success','Aktiv'], 'inactive' => ['neutral','Inaktiv'], 'left' => ['danger','Ausgeschieden']][$employee->status] ?? ['neutral', $employee->status];
+            $since = $employments->sortBy('started_on')->first()?->started_on;
+            $isAgent = $employee->isAgent();
+            $levels = ['basic' => ['neutral','Basic'], 'advanced' => ['info','Advanced'], 'expert' => ['success','Expert']];
         @endphp
-        <header class="space-y-2">
+
+        {{-- Kopf: wer, welche Stelle in welchem Bereich, wo in der Organisation --}}
+        <header class="space-y-1.5">
             <div class="flex flex-wrap items-center gap-2">
                 <h1 class="text-xl font-semibold text-[color:var(--nx-text)]">{{ $employee->display_name }}</h1>
                 <x-nx-badge variant="{{ $sc[0] }}" dot>{{ $sc[1] }}</x-nx-badge>
-                @if($employee->isAgent())<x-nx-badge variant="info">Agent</x-nx-badge>@endif
+                @if($isAgent)<x-nx-badge variant="info">Agent</x-nx-badge>@endif
+            </div>
+            <div class="text-sm text-[color:var(--nx-text)]">
+                @if($position)
+                    <a href="{{ route('people.job-profiles.show', $position['position_id']) }}" wire:navigate class="font-medium hover:text-[color:var(--nx-accent)] hover:underline">{{ $position['position'] }}</a>
+                    @if($position['unit'])<span class="text-[color:var(--nx-muted)]"> · {{ $position['unit'] }}</span>@endif
+                @else
+                    <span class="text-[color:var(--nx-muted)]">Noch keine Stelle</span>
+                @endif
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[color:var(--nx-muted)]">
-                <span class="inline-flex items-center gap-1">@svg('heroicon-o-identification', 'w-3.5 h-3.5') Personalnr. {{ $employee->employee_number ?? '—' }}</span>
-                <span class="inline-flex items-center gap-1">@svg('heroicon-o-share', 'w-3.5 h-3.5') {{ $employee->org_entity_id ? ('Knoten #' . $employee->org_entity_id) : 'kein Personen-Knoten' }}</span>
                 @if($orgContext['carrier'])
                     <span class="inline-flex items-center gap-1">@svg('heroicon-o-building-office', 'w-3.5 h-3.5') {{ $orgContext['carrier']['name'] }}</span>
                 @endif
-                @if($orgContext['department'])
-                    <span class="inline-flex items-center gap-1" title="abgeleitet aus dem Org-Graphen{{ !empty($orgContext['source']) ? ' (' . $orgContext['source'] . ')' : '' }}">@svg('heroicon-o-rectangle-group', 'w-3.5 h-3.5') {{ $orgContext['department']['name'] }}</span>
+                @if($supervisor)
+                    <span class="inline-flex items-center gap-1" title="{{ $supervisor['source_label'] ?? '' }}">@svg('heroicon-o-arrow-up-right', 'w-3.5 h-3.5') berichtet an {{ $supervisor['name'] }}</span>
                 @endif
-                <span class="tabular-nums">{{ $employments->count() }} {{ $employments->count() === 1 ? 'Anstellung' : 'Anstellungen' }} · {{ $employee->skills_count }} Skills</span>
+                @if($since)
+                    <span class="inline-flex items-center gap-1 tabular-nums">@svg('heroicon-o-calendar', 'w-3.5 h-3.5') dabei seit {{ $since->format('d.m.Y') }}</span>
+                @endif
+                @if($employee->employee_number)
+                    <span class="inline-flex items-center gap-1">@svg('heroicon-o-identification', 'w-3.5 h-3.5') Personalnr. {{ $employee->employee_number }}</span>
+                @endif
+                @unless($employee->org_entity_id)
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-warning)]">@svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5') nicht mit der Organisation verknüpft</span>
+                @endunless
             </div>
         </header>
 
-        @if($employee->isAgent() && $employee->org_entity_id)
+        @if($isAgent && $employee->org_entity_id)
             <x-nx-tabs class="!mb-0">
                 <x-nx-tab :active="$tab === 'uebersicht'" wire:click="setTab('uebersicht')">Übersicht</x-nx-tab>
                 <x-nx-tab :active="$tab === 'gedaechtnis'" wire:click="setTab('gedaechtnis')">Gedächtnis</x-nx-tab>
@@ -54,108 +73,103 @@
         @if($tab === 'gedaechtnis')
             @livewire('people.employee.memory', ['employee' => $employee], key('employee-memory-' . $employee->id))
         @else
-        @if($developmentCard)
-            <x-people::development-card :card="$developmentCard" />
-        @endif
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
+                {{-- Entwicklung --}}
+                <div class="lg:col-span-2 min-w-0">
+                    @if($developmentCard)
+                        <x-people::development-card :card="$developmentCard" />
+                    @endif
+                </div>
 
-        {{-- Anstellung (Arbeitsvertrag) --}}
-        <x-nx-section icon="heroicon-o-briefcase" title="Anstellung" hint="{{ $employments->count() }}">
-            <x-slot name="action">
-                <x-nx-button variant="primary" wire:click="openEmpCreate">
-                    @svg('heroicon-o-plus', 'w-4 h-4') <span>Vertrag</span>
-                </x-nx-button>
-            </x-slot>
+                {{-- Fakten: Stellen, Anstellung, Skills, Kontakt --}}
+                <div class="min-w-0 space-y-4">
+                    <x-nx-card flush>
+                        <div class="px-4 pt-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-[color:var(--nx-faint)]">Stellen</div>
+                        @forelse($assignments as $a)
+                            <a href="{{ $a->jobProfile ? route('people.job-profiles.show', $a->jobProfile->id) : '#' }}" wire:navigate
+                               class="flex items-center justify-between gap-2 px-4 py-2 text-sm hover:bg-[color:var(--nx-hover)]">
+                                <span class="min-w-0 truncate text-[color:var(--nx-text)]">{{ $a->jobProfile?->name ?? '—' }}</span>
+                                <span class="shrink-0 flex items-center gap-2 text-xs text-[color:var(--nx-muted)] tabular-nums">
+                                    @if($a->is_primary)<x-nx-badge variant="info">Haupt</x-nx-badge>@endif
+                                    {{ $a->percentage }} %
+                                </span>
+                            </a>
+                        @empty
+                            <p class="m-0 px-4 pb-3 text-sm text-[color:var(--nx-muted)]">Keine Stelle zugewiesen — unter „Stellen“ besetzen.</p>
+                        @endforelse
+                        <div class="h-2"></div>
+                    </x-nx-card>
 
-            @forelse($employments as $emp)
-                <x-nx-card class="mb-3 {{ $emp->status !== 'active' ? 'opacity-60' : '' }}">
-                    <div class="flex items-start justify-between">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2">
-                                <span class="font-medium text-[color:var(--nx-text)]">{{ \Platform\People\Models\Employment::TYPE_LABELS[$emp->employment_type] ?? $emp->employment_type }}</span>
-                                @if($emp->employer)<span class="text-xs text-[color:var(--nx-muted)]">· {{ $emp->employer->name }}</span>@endif
-                                @if($emp->is_fixed_term)<x-nx-badge variant="warning">befristet</x-nx-badge>@endif
-                                <x-nx-badge variant="{{ $emp->status === 'active' ? 'success' : 'neutral' }}" dot>{{ $emp->status === 'active' ? 'Aktiv' : 'Beendet' }}</x-nx-badge>
+                    <x-nx-card flush>
+                        <div class="flex items-center justify-between px-4 pt-3 pb-1">
+                            <span class="text-[11px] font-medium uppercase tracking-wide text-[color:var(--nx-faint)]">Anstellung</span>
+                            <button type="button" wire:click="openEmpCreate" class="text-xs text-[color:var(--nx-accent)] hover:underline">+ Vertrag</button>
+                        </div>
+                        @forelse($employments as $emp)
+                            <div class="group flex items-start justify-between gap-2 px-4 py-2 {{ $emp->status !== 'active' ? 'opacity-60' : '' }}">
+                                <div class="min-w-0 space-y-0.5">
+                                    <div class="flex flex-wrap items-center gap-1.5 text-sm text-[color:var(--nx-text)]">
+                                        <span class="font-medium">{{ \Platform\People\Models\Employment::TYPE_LABELS[$emp->employment_type] ?? $emp->employment_type }}</span>
+                                        @if($emp->employer)<span class="text-xs text-[color:var(--nx-muted)]">· {{ $emp->employer->name }}</span>@endif
+                                        @if($emp->is_fixed_term)<x-nx-badge variant="warning">befristet</x-nx-badge>@endif
+                                        @if($emp->status !== 'active')<x-nx-badge variant="neutral">beendet</x-nx-badge>@endif
+                                    </div>
+                                    <div class="text-xs text-[color:var(--nx-muted)] tabular-nums">
+                                        {{ optional($emp->started_on)->format('d.m.Y') ?? '—' }} – {{ optional($emp->ended_on)->format('d.m.Y') ?? ($emp->is_fixed_term ? optional($emp->fixed_term_end_date)->format('d.m.Y') : 'unbefristet') }}
+                                        @if($emp->weekly_hours) · {{ rtrim(rtrim((string)$emp->weekly_hours,'0'),'.') }} Std/Wo @endif
+                                        @if($emp->fte) · {{ rtrim(rtrim((string)$emp->fte,'0'),'.') }} FTE @endif
+                                    </div>
+                                    @if($emp->note)<div class="text-xs text-[color:var(--nx-muted)] italic">{{ $emp->note }}</div>@endif
+                                </div>
+                                <div class="shrink-0 flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                                    <x-nx-button variant="ghost" size="sm" icon wire:click="openEmpEdit({{ $emp->id }})" title="Bearbeiten">@svg('heroicon-o-pencil', 'w-4 h-4')</x-nx-button>
+                                    <x-nx-button variant="ghost" size="sm" icon wire:click="deleteEmployment({{ $emp->id }})" wire:confirm="Anstellung wirklich entfernen?" title="Entfernen">@svg('heroicon-o-trash', 'w-4 h-4')</x-nx-button>
+                                </div>
                             </div>
-                            <div class="text-xs text-[color:var(--nx-muted)] flex flex-wrap gap-x-4 gap-y-1">
-                                <span>{{ optional($emp->started_on)->format('d.m.Y') ?? '—' }} – {{ optional($emp->ended_on)->format('d.m.Y') ?? ($emp->is_fixed_term ? optional($emp->fixed_term_end_date)->format('d.m.Y') : 'unbefristet') }}</span>
-                                @if($emp->weekly_hours)<span>{{ rtrim(rtrim((string)$emp->weekly_hours,'0'),'.') }} Std/Wo</span>@endif
-                                @if($emp->fte)<span>{{ rtrim(rtrim((string)$emp->fte,'0'),'.') }} FTE</span>@endif
-                                @if($emp->annual_vacation_days)<span>{{ $emp->annual_vacation_days }} Urlaubstage</span>@endif
-                                @if($emp->gross_amount)<span>{{ number_format((float)$emp->gross_amount, 2, ',', '.') }} € {{ $emp->wage_type === 'hourly' ? '/ Std' : '/ Monat' }}</span>@endif
-                                @if($emp->work_location)<span>{{ $emp->work_location }}</span>@endif
-                                @if($emp->probation_end_date)<span>Probezeit bis {{ optional($emp->probation_end_date)->format('d.m.Y') }}</span>@endif
+                        @empty
+                            <p class="m-0 px-4 pb-3 text-sm text-[color:var(--nx-muted)]">Noch kein Vertrag hinterlegt.</p>
+                        @endforelse
+                        <div class="h-2"></div>
+                    </x-nx-card>
+
+                    <x-nx-card flush>
+                        <div class="px-4 pt-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-[color:var(--nx-faint)]">Skills</div>
+                        <div class="px-4 pb-3">
+                            @forelse($skills as $es)
+                                @php $lc = $levels[$es->level] ?? ['neutral', $es->level]; @endphp
+                                <span class="inline-flex items-center gap-1.5 mr-1.5 mb-1.5 px-2 py-0.5 rounded-md border border-[color:var(--nx-line)] text-xs text-[color:var(--nx-text)]">
+                                    {{ $es->skill?->name ?? '—' }} <x-nx-badge variant="{{ $lc[0] }}">{{ $lc[1] }}</x-nx-badge>
+                                </span>
+                            @empty
+                                <p class="m-0 text-sm text-[color:var(--nx-muted)]">Noch keine Skills erfasst.</p>
+                            @endforelse
+                        </div>
+                    </x-nx-card>
+
+                    @unless($isAgent)
+                        <x-nx-card flush>
+                            <div class="flex items-center justify-between px-4 pt-3 pb-1">
+                                <span class="text-[11px] font-medium uppercase tracking-wide text-[color:var(--nx-faint)]">Kontakt (CRM)</span>
+                                @if($employee->org_entity_id && $directoryAvailable)
+                                    <button type="button" wire:click="openCrmLink" class="text-xs text-[color:var(--nx-accent)] hover:underline">verknüpfen</button>
+                                @endif
                             </div>
-                            @if($emp->note)<div class="text-xs text-[color:var(--nx-muted)] italic">{{ $emp->note }}</div>@endif
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <x-nx-button variant="ghost" icon wire:click="openEmpEdit({{ $emp->id }})">@svg('heroicon-o-pencil', 'w-4 h-4')</x-nx-button>
-                            <x-nx-button variant="ghost" icon wire:click="deleteEmployment({{ $emp->id }})" wire:confirm="Anstellung wirklich entfernen?">@svg('heroicon-o-trash', 'w-4 h-4')</x-nx-button>
-                        </div>
-                    </div>
-                </x-nx-card>
-            @empty
-                <x-nx-card>
-                    <x-nx-empty icon="heroicon-o-briefcase">Noch kein Arbeitsvertrag hinterlegt.</x-nx-empty>
-                </x-nx-card>
-            @endforelse
-        </x-nx-section>
-
-        {{-- Skills --}}
-        <x-nx-section icon="heroicon-o-academic-cap" title="Skills">
-            <x-nx-card>
-                @forelse($skills as $es)
-                    @php
-                        $lc = ['basic' => ['neutral','Basic'], 'advanced' => ['info','Advanced'], 'expert' => ['success','Expert']][$es->level] ?? ['neutral', $es->level];
-                    @endphp
-                    <span class="inline-flex items-center gap-1.5 mr-2 mb-2 px-2 py-1 rounded-md border border-[color:var(--nx-line)] text-sm text-[color:var(--nx-text)]">
-                        {{ $es->skill?->name ?? '—' }}
-                        <x-nx-badge variant="{{ $lc[0] }}">{{ $lc[1] }}</x-nx-badge>
-                    </span>
-                @empty
-                    <x-nx-empty icon="heroicon-o-academic-cap">Keine Skills zugeordnet.</x-nx-empty>
-                @endforelse
-            </x-nx-card>
-        </x-nx-section>
-
-        {{-- Jobprofile --}}
-        <x-nx-section icon="heroicon-o-identification" title="Jobprofile">
-            <x-nx-card flush>
-                @forelse($assignments as $a)
-                    <div class="flex items-center justify-between px-4 py-2.5 border-b border-[color:var(--nx-line)] last:border-0">
-                        <a href="{{ $a->jobProfile ? route('people.job-profiles.show', $a->jobProfile->id) : '#' }}" wire:navigate class="text-sm text-[color:var(--nx-text)] hover:text-[color:var(--nx-accent)]">
-                            {{ $a->jobProfile?->name ?? '—' }}
-                        </a>
-                        <div class="flex items-center gap-2 text-xs text-[color:var(--nx-muted)]">
-                            @if($a->is_primary)<x-nx-badge variant="info">primär</x-nx-badge>@endif
-                            <span>{{ $a->percentage }}%</span>
-                        </div>
-                    </div>
-                @empty
-                    <x-nx-empty icon="heroicon-o-identification">Keine Jobprofile zugewiesen.</x-nx-empty>
-                @endforelse
-            </x-nx-card>
-        </x-nx-section>
-
-        {{-- CRM-Kontakt (graph-nativ am Personen-Knoten) --}}
-        <x-nx-section icon="heroicon-o-user-circle" title="CRM-Kontakt">
-
-            <x-nx-card>
-                @if(!$employee->org_entity_id)
-                    <x-nx-empty icon="heroicon-o-user-circle">Kein Personen-Knoten verknüpft — im Mitarbeiter setzen, dann ist CRM-Anreicherung möglich.</x-nx-empty>
-                @elseif($crmProfile)
-                    <div class="space-y-1">
-                        @isset($crmProfile['name'])<x-nx-property-row icon="heroicon-o-user" label="Name">{{ $crmProfile['name'] }}</x-nx-property-row>@endisset
-                        @isset($crmProfile['status'])<x-nx-property-row icon="heroicon-o-flag" label="Status">{{ $crmProfile['status'] }}</x-nx-property-row>@endisset
-                        @isset($crmProfile['birth_date'])<x-nx-property-row icon="heroicon-o-cake" label="Geburtsdatum">{{ \Illuminate\Support\Carbon::parse($crmProfile['birth_date'])->format('d.m.Y') }}</x-nx-property-row>@endisset
-                        @isset($crmProfile['phone'])<x-nx-property-row icon="heroicon-o-phone" label="Telefon">{{ $crmProfile['phone'] }}</x-nx-property-row>@endisset
-                        @isset($crmProfile['email'])<x-nx-property-row icon="heroicon-o-envelope" label="E-Mail">{{ $crmProfile['email'] }}</x-nx-property-row>@endisset
-                        @isset($crmProfile['address'])<x-nx-property-row icon="heroicon-o-map-pin" label="Anschrift">{{ $crmProfile['address'] }}</x-nx-property-row>@endisset
-                    </div>
-                @else
-                    <x-nx-empty icon="heroicon-o-user-circle">Kein CRM-Kontakt verknüpft.</x-nx-empty>
-                @endif
-            </x-nx-card>
-        </x-nx-section>
+                            <div class="px-4 pb-3">
+                                @if($crmProfile)
+                                    <div class="space-y-1">
+                                        @isset($crmProfile['email'])<x-nx-property-row icon="heroicon-o-envelope" label="E-Mail">{{ $crmProfile['email'] }}</x-nx-property-row>@endisset
+                                        @isset($crmProfile['phone'])<x-nx-property-row icon="heroicon-o-phone" label="Telefon">{{ $crmProfile['phone'] }}</x-nx-property-row>@endisset
+                                        @isset($crmProfile['address'])<x-nx-property-row icon="heroicon-o-map-pin" label="Anschrift">{{ $crmProfile['address'] }}</x-nx-property-row>@endisset
+                                        @isset($crmProfile['birth_date'])<x-nx-property-row icon="heroicon-o-cake" label="Geburtsdatum">{{ \Illuminate\Support\Carbon::parse($crmProfile['birth_date'])->format('d.m.Y') }}</x-nx-property-row>@endisset
+                                    </div>
+                                @else
+                                    <p class="m-0 text-sm text-[color:var(--nx-muted)]">Kein Kontakt verknüpft.</p>
+                                @endif
+                            </div>
+                        </x-nx-card>
+                    @endunless
+                </div>
+            </div>
         @endif
     </x-people::body>
 

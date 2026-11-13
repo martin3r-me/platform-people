@@ -14,7 +14,7 @@
     <x-people::body>
         <div class="space-y-6">
             {{-- Kopf: Stelle, Einheit (Org-Wahrheit), Gültigkeit, Kennzahlen --}}
-            <header class="flex flex-col lg:flex-row lg:items-end gap-4">
+            <header class="flex flex-col lg:flex-row lg:items-start gap-4">
                 <div class="flex-1 min-w-0 space-y-2">
                     <h1 class="text-xl font-semibold text-[color:var(--nx-text)]">{{ $jobProfile->name }}</h1>
                     <div class="flex flex-wrap items-center gap-2">
@@ -25,35 +25,55 @@
                             <x-nx-badge variant="neutral">{{ $jobProfile->job_family }}</x-nx-badge>
                         @endif
                         <x-nx-badge variant="{{ $jobProfile->status === 'active' ? 'success' : ($jobProfile->status === 'archived' ? 'neutral' : 'info') }}" dot>
-                            {{ ucfirst($jobProfile->status) }}
+                            {{ ['active' => 'Aktiv', 'draft' => 'Entwurf', 'archived' => 'Archiviert'][$jobProfile->status] ?? $jobProfile->status }}
                         </x-nx-badge>
-                        <span class="text-xs text-[color:var(--nx-muted)] tabular-nums">
-                            gültig {{ $jobProfile->effective_from?->format('d.m.Y') ?? 'seit jeher' }}{{ $jobProfile->effective_to ? ' – ' . $jobProfile->effective_to->format('d.m.Y') : '' }}
-                            · {{ $this->assignments->count() }} Zuweisungen · {{ $this->skillRecords->count() }} Skills · {{ $this->roles->count() }} Rollen
-                        </span>
+                        @if($jobProfile->effective_from || $jobProfile->effective_to)
+                            <span class="text-xs text-[color:var(--nx-muted)] tabular-nums">
+                                gültig {{ $jobProfile->effective_from ? 'ab ' . $jobProfile->effective_from->format('d.m.Y') : '' }}{{ $jobProfile->effective_to ? ' bis ' . $jobProfile->effective_to->format('d.m.Y') : '' }}
+                            </span>
+                        @endif
+                    </div>
+                    @php
+                        $holders = $this->assignments->filter(fn ($a) => ! $a->valid_to || $a->valid_to->gte(now()->startOfDay()));
+                    @endphp
+                    <div class="text-sm text-[color:var(--nx-text)]">
+                        @if($holders->isEmpty())
+                            <span class="text-[color:var(--nx-warning)]">Offen — noch niemand auf dieser Stelle</span>
+                        @else
+                            <span class="text-[color:var(--nx-muted)]">Besetzt durch</span>
+                            @foreach($holders as $h)
+                                <a href="{{ route('people.employees.show', $h->employee_id) }}" wire:navigate class="font-medium hover:text-[color:var(--nx-accent)] hover:underline">{{ $h->employee?->display_name ?? '#' . $h->employee_id }}</a>@if($h->percentage !== null && $h->percentage < 100)<span class="text-xs text-[color:var(--nx-muted)] tabular-nums"> ({{ $h->percentage }} %)</span>@endif{{ $loop->last ? '' : ',' }}
+                            @endforeach
+                        @endif
                     </div>
                 </div>
-                <div class="w-full lg:w-80 shrink-0">
-                    <x-nx-input-select name="unitId" label="Gehört zur Einheit" wire:model.live="unitId"
-                        nullable nullLabel="— keine Einheit —"
-                        :options="$unitOptions"
-                        hint="Daraus ergibt sich der Stellenplan in der Organisation."
+                <div class="w-full lg:w-72 shrink-0">
+                    <x-nx-input-select name="unitId" label="Bereich" wire:model.live="unitId"
+                        nullable nullLabel="— kein Bereich —"
+                        :options="collect($unitOptions)->map(fn ($name, $id) => ['value' => $id, 'label' => $name])->values()->all()"
                         size="sm" />
                 </div>
             </header>
 
             {{-- Übersicht --}}
-            <x-nx-section icon="heroicon-o-document-text" title="Übersicht">
+            <x-nx-section icon="heroicon-o-document-text" title="Auftrag">
                 <x-nx-card>
                     <div class="space-y-4">
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-1">Beschreibung</h3>
-                            <p class="text-sm text-[color:var(--nx-text)] whitespace-pre-line">{{ $jobProfile->description ?: '—' }}</p>
-                        </div>
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-1">Zweck</h3>
-                            <p class="text-sm text-[color:var(--nx-text)] whitespace-pre-line">{{ $jobProfile->purpose ?: '—' }}</p>
-                        </div>
+                        @if($jobProfile->purpose)
+                            <div>
+                                <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-1">Zweck</h3>
+                                <p class="text-sm text-[color:var(--nx-text)] whitespace-pre-line">{{ $jobProfile->purpose }}</p>
+                            </div>
+                        @endif
+                        @if($jobProfile->description)
+                            <div>
+                                <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-1">Beschreibung</h3>
+                                <p class="text-sm text-[color:var(--nx-text)] whitespace-pre-line">{{ $jobProfile->description }}</p>
+                            </div>
+                        @endif
+                        @if(! $jobProfile->purpose && ! $jobProfile->description && ! $jobProfile->content)
+                            <p class="text-sm text-[color:var(--nx-muted)]">Noch kein Zweck beschrieben.</p>
+                        @endif
                         @if($jobProfile->content)
                             <div>
                                 <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-1">Inhalt</h3>
@@ -64,111 +84,60 @@
                 </x-nx-card>
             </x-nx-section>
 
-            {{-- Anforderungen --}}
-            <x-nx-section icon="heroicon-o-clipboard-document-list" title="Anforderungen">
+            {{-- Profil: nur, was gefüllt ist --}}
+            @php
+                $label = fn ($k) => ['autonomy_level' => 'Autonomie', 'remote' => 'Remote', 'location' => 'Ort', 'hours' => 'Arbeitszeit'][$k] ?? ucfirst(str_replace('_', ' ', (string) $k));
+                $text = fn ($item) => is_array($item) ? ($item['name'] ?? implode(', ', array_filter($item, 'is_scalar'))) : (string) $item;
+                $list = fn ($v) => is_array($v) ? array_values(array_filter($v, fn ($i) => $i !== null && $i !== '' && $i !== [])) : [];
+                $kv = [];
+                foreach ([is_array($jobProfile->work_model) ? $jobProfile->work_model : [], is_array($jobProfile->reporting) ? $jobProfile->reporting : []] as $src) {
+                    foreach ($src as $k => $v) {
+                        // Berichtslinie kommt aus der Organisation, nicht aus dem Stellentext.
+                        if ($k === 'reports_to' || $v === '' || $v === null || $v === false || is_array($v)) { continue; }
+                        $kv[] = ['label' => $label($k), 'value' => is_bool($v) ? 'Ja' : (string) $v];
+                    }
+                }
+                $blocks = array_filter([
+                    ['title' => 'Verantwortlichkeiten', 'icon' => 'heroicon-o-check-circle', 'tone' => 'muted', 'items' => $list($jobProfile->responsibilities)],
+                    ['title' => 'Kennzahlen', 'icon' => 'heroicon-o-chart-bar', 'tone' => 'muted', 'items' => $list($jobProfile->kpis)],
+                    ['title' => 'Anforderungen', 'icon' => 'heroicon-o-check-circle', 'tone' => 'muted', 'items' => $list($jobProfile->requirements)],
+                    ['title' => 'Soft Skills', 'icon' => 'heroicon-o-sparkles', 'tone' => 'muted', 'items' => $list($jobProfile->soft_skills)],
+                    ['title' => 'Ausschlusskriterien', 'icon' => 'heroicon-o-x-circle', 'tone' => 'danger', 'items' => $list($jobProfile->exclusion_criteria)],
+                ], fn ($b) => $b['items'] !== []);
+            @endphp
+            <x-nx-section icon="heroicon-o-clipboard-document-list" title="Profil">
                 <x-nx-card>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {{-- Verantwortlichkeiten --}}
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">Verantwortlichkeiten</h3>
-                            @php $responsibilities = is_array($jobProfile->responsibilities) ? $jobProfile->responsibilities : []; @endphp
-                            @forelse($responsibilities as $item)
-                                <div class="flex items-start gap-2 py-1 text-sm text-[color:var(--nx-text)]">
-                                    @svg('heroicon-o-check-circle', 'w-4 h-4 mt-0.5 text-[color:var(--nx-muted)] shrink-0')
-                                    <span>{{ is_array($item) ? ($item['name'] ?? implode(', ', $item)) : $item }}</span>
+                    @if($blocks === [] && $kv === [])
+                        <p class="m-0 text-sm text-[color:var(--nx-muted)]">Noch keine Verantwortlichkeiten oder Kennzahlen beschrieben.</p>
+                    @else
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            @foreach($blocks as $b)
+                                <div>
+                                    <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">{{ $b['title'] }}</h3>
+                                    @foreach($b['items'] as $item)
+                                        <div class="flex items-start gap-2 py-1 text-sm text-[color:var(--nx-text)]">
+                                            @svg($b['icon'], 'w-4 h-4 mt-0.5 shrink-0 ' . ($b['tone'] === 'danger' ? 'text-[color:var(--nx-danger)]' : 'text-[color:var(--nx-muted)]'))
+                                            <span>
+                                                {{ $text($item) }}
+                                                @if(is_array($item) && ! empty($item['description']))<span class="text-xs text-[color:var(--nx-muted)]">— {{ $item['description'] }}</span>@endif
+                                            </span>
+                                        </div>
+                                    @endforeach
                                 </div>
-                            @empty
-                                <p class="text-sm text-[color:var(--nx-muted)]">—</p>
-                            @endforelse
-                        </div>
-
-                        {{-- Requirements --}}
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">Anforderungen</h3>
-                            @php $requirements = is_array($jobProfile->requirements) ? $jobProfile->requirements : []; @endphp
-                            @forelse($requirements as $item)
-                                <div class="flex items-start gap-2 py-1 text-sm text-[color:var(--nx-text)]">
-                                    @svg('heroicon-o-check-circle', 'w-4 h-4 mt-0.5 text-[color:var(--nx-muted)] shrink-0')
-                                    <span>{{ is_array($item) ? ($item['name'] ?? implode(', ', $item)) : $item }}</span>
+                            @endforeach
+                            @if($kv !== [])
+                                <div>
+                                    <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">Arbeitsmodell</h3>
+                                    @foreach($kv as $row)
+                                        <div class="flex items-center justify-between py-1 text-sm">
+                                            <span class="text-[color:var(--nx-muted)]">{{ $row['label'] }}</span>
+                                            <span class="text-[color:var(--nx-text)] font-medium">{{ $row['value'] }}</span>
+                                        </div>
+                                    @endforeach
                                 </div>
-                            @empty
-                                <p class="text-sm text-[color:var(--nx-muted)]">—</p>
-                            @endforelse
+                            @endif
                         </div>
-
-                        {{-- Soft Skills --}}
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">Soft Skills</h3>
-                            @php $softSkills = is_array($jobProfile->soft_skills) ? $jobProfile->soft_skills : []; @endphp
-                            @forelse($softSkills as $item)
-                                <div class="flex items-start gap-2 py-1 text-sm text-[color:var(--nx-text)]">
-                                    @svg('heroicon-o-sparkles', 'w-4 h-4 mt-0.5 text-[color:var(--nx-muted)] shrink-0')
-                                    <span>{{ is_array($item) ? ($item['name'] ?? implode(', ', $item)) : $item }}</span>
-                                </div>
-                            @empty
-                                <p class="text-sm text-[color:var(--nx-muted)]">—</p>
-                            @endforelse
-                        </div>
-
-                        {{-- KPIs --}}
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">KPIs</h3>
-                            @php $kpis = is_array($jobProfile->kpis) ? $jobProfile->kpis : []; @endphp
-                            @forelse($kpis as $item)
-                                <div class="flex items-start gap-2 py-1 text-sm text-[color:var(--nx-text)]">
-                                    @svg('heroicon-o-chart-bar', 'w-4 h-4 mt-0.5 text-[color:var(--nx-muted)] shrink-0')
-                                    <span>
-                                        {{ is_array($item) ? ($item['name'] ?? implode(', ', $item)) : $item }}
-                                        @if(is_array($item) && !empty($item['description']))
-                                            <span class="text-xs text-[color:var(--nx-muted)]">— {{ $item['description'] }}</span>
-                                        @endif
-                                    </span>
-                                </div>
-                            @empty
-                                <p class="text-sm text-[color:var(--nx-muted)]">—</p>
-                            @endforelse
-                        </div>
-
-                        {{-- Ausschlusskriterien --}}
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">Ausschlusskriterien</h3>
-                            @php $exclusions = is_array($jobProfile->exclusion_criteria) ? $jobProfile->exclusion_criteria : []; @endphp
-                            @forelse($exclusions as $item)
-                                <div class="flex items-start gap-2 py-1 text-sm text-[color:var(--nx-text)]">
-                                    @svg('heroicon-o-x-circle', 'w-4 h-4 mt-0.5 text-[color:var(--nx-danger)] shrink-0')
-                                    <span>{{ is_array($item) ? ($item['name'] ?? implode(', ', $item)) : $item }}</span>
-                                </div>
-                            @empty
-                                <p class="text-sm text-[color:var(--nx-muted)]">—</p>
-                            @endforelse
-                        </div>
-
-                        {{-- Arbeitsmodell & Reporting --}}
-                        <div>
-                            <h3 class="text-xs font-bold text-[color:var(--nx-muted)] uppercase tracking-wider mb-2">Arbeitsmodell &amp; Reporting</h3>
-                            @php
-                                $workModel = is_array($jobProfile->work_model) ? $jobProfile->work_model : [];
-                                $reporting = is_array($jobProfile->reporting) ? $jobProfile->reporting : [];
-                                $kv = [];
-                                foreach ($workModel as $k => $v) {
-                                    if ($v === '' || $v === null || $v === false) { continue; }
-                                    $kv['wm_' . $k] = ['label' => ucfirst(str_replace('_', ' ', (string) $k)), 'value' => is_bool($v) ? 'Ja' : (string) $v];
-                                }
-                                foreach ($reporting as $k => $v) {
-                                    if ($v === '' || $v === null || $v === false) { continue; }
-                                    $kv['rp_' . $k] = ['label' => ucfirst(str_replace('_', ' ', (string) $k)), 'value' => is_bool($v) ? 'Ja' : (string) $v];
-                                }
-                            @endphp
-                            @forelse($kv as $row)
-                                <div class="flex items-center justify-between py-1 text-sm">
-                                    <span class="text-[color:var(--nx-muted)]">{{ $row['label'] }}</span>
-                                    <span class="text-[color:var(--nx-text)] font-medium">{{ $row['value'] }}</span>
-                                </div>
-                            @empty
-                                <p class="text-sm text-[color:var(--nx-muted)]">—</p>
-                            @endforelse
-                        </div>
-                    </div>
+                    @endif
                 </x-nx-card>
             </x-nx-section>
 
@@ -195,7 +164,7 @@
                             </div>
                         </div>
                     @empty
-                        <x-nx-empty icon="heroicon-o-academic-cap">Keine Skills zugeordnet.</x-nx-empty>
+                        <p class="m-0 px-4 py-3 text-sm text-[color:var(--nx-muted)]">Keine Skills zugeordnet.</p>
                     @endforelse
                 </x-nx-card>
             </x-nx-section>
@@ -211,13 +180,13 @@
                             @endif
                         </div>
                     @empty
-                        <x-nx-empty icon="heroicon-o-shield-check">Keine Default-Rollen hinterlegt.</x-nx-empty>
+                        <p class="m-0 px-4 py-3 text-sm text-[color:var(--nx-muted)]">Keine Rollen hinterlegt.</p>
                     @endforelse
                 </x-nx-card>
             </x-nx-section>
 
             {{-- Zuweisungen --}}
-            <x-nx-section icon="heroicon-o-user-group" title="Zuweisungen">
+            <x-nx-section icon="heroicon-o-user-group" title="Besetzung">
                 <x-nx-card flush>
                     @forelse($this->assignments as $assignment)
                         <div class="px-4 py-3 border-b border-[color:var(--nx-line)] last:border-0">
@@ -256,7 +225,7 @@
                             @endif
                         </div>
                     @empty
-                        <x-nx-empty icon="heroicon-o-user-group">Noch keine Zuweisungen.</x-nx-empty>
+                        <p class="m-0 px-4 py-3 text-sm text-[color:var(--nx-muted)]">Noch niemand auf dieser Stelle.</p>
                     @endforelse
                 </x-nx-card>
             </x-nx-section>

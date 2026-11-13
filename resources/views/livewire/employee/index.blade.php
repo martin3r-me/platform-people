@@ -34,63 +34,43 @@
 
     <x-people::body>
         <x-nx-card flush>
-            <x-nx-table>
-                <x-nx-table-header>
-                    <x-nx-table-header-cell>Name</x-nx-table-header-cell>
-                    <x-nx-table-header-cell>Personalnr.</x-nx-table-header-cell>
-                    <x-nx-table-header-cell align="center">Skills</x-nx-table-header-cell>
-                    <x-nx-table-header-cell align="center">Status</x-nx-table-header-cell>
-                    <x-nx-table-header-cell align="right">Aktionen</x-nx-table-header-cell>
-                </x-nx-table-header>
-                <x-nx-table-body>
-                    @forelse($this->employees as $employee)
-                        <x-nx-table-row class="{{ $employee->status !== 'active' ? 'opacity-60' : '' }}">
-                            <x-nx-table-cell>
-                                <a href="{{ route('people.employees.show', $employee->id) }}" wire:navigate class="font-medium text-[color:var(--nx-text)] hover:text-[color:var(--nx-accent)] hover:underline">{{ $employee->display_name }}</a>
-                                @if($employee->isAgent())<x-nx-badge variant="info" class="ml-1">Agent</x-nx-badge>@endif
-                            </x-nx-table-cell>
-                            <x-nx-table-cell>{{ $employee->employee_number ?? '—' }}</x-nx-table-cell>
-                            <x-nx-table-cell align="center">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[color:var(--nx-hover)] text-[color:var(--nx-text)]">{{ $employee->skills_count }}</span>
-                            </x-nx-table-cell>
-                            <x-nx-table-cell align="center">
-                                @php
-                                    $statusConfig = [
-                                        'active' => ['variant' => 'success', 'label' => 'Aktiv'],
-                                        'inactive' => ['variant' => 'neutral', 'label' => 'Inaktiv'],
-                                        'left' => ['variant' => 'danger', 'label' => 'Ausgeschieden'],
-                                    ];
-                                    $sc = $statusConfig[$employee->status] ?? $statusConfig['inactive'];
-                                @endphp
-                                <x-nx-badge :variant="$sc['variant']">{{ $sc['label'] }}</x-nx-badge>
-                            </x-nx-table-cell>
-                            <x-nx-table-cell align="right">
-                                <div class="flex items-center justify-end gap-1">
-                                    <x-nx-button variant="ghost" size="sm" icon wire:click="openEdit({{ $employee->id }})">
-                                        @svg('heroicon-o-pencil', 'w-4 h-4')
-                                    </x-nx-button>
-                                    <x-nx-button variant="ghost" size="sm" icon wire:click="delete({{ $employee->id }})" wire:confirm="Wirklich löschen?">
-                                        @svg('heroicon-o-trash', 'w-4 h-4')
-                                    </x-nx-button>
-                                </div>
-                            </x-nx-table-cell>
-                        </x-nx-table-row>
-                    @empty
-                        <x-nx-table-row>
-                            <x-nx-table-cell colspan="5">
-                                <x-nx-empty icon="heroicon-o-users">
-                                    Noch keine Mitarbeiter.
-                                    <x-slot name="action">
-                                        <x-nx-button variant="primary" size="sm" wire:click="openCreate">
-                                            @svg('heroicon-o-plus', 'w-4 h-4') Erstellen
-                                        </x-nx-button>
-                                    </x-slot>
-                                </x-nx-empty>
-                            </x-nx-table-cell>
-                        </x-nx-table-row>
-                    @endforelse
-                </x-nx-table-body>
-            </x-nx-table>
+            <div class="hidden md:grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_7rem_6.5rem_4rem] gap-4 px-4 py-2 border-b border-[color:var(--nx-line)] text-[11px] uppercase tracking-wide text-[color:var(--nx-faint)]">
+                <span>Name</span><span>Stelle</span><span>Bereich</span><span>Dabei seit</span><span>Status</span><span></span>
+            </div>
+            @forelse($this->employees as $employee)
+                @php
+                    $pos = $positions[$employee->id] ?? null;
+                    $since = $employee->employments->first()?->started_on;
+                    $sc = ['active' => ['success', 'Aktiv'], 'inactive' => ['neutral', 'Inaktiv'], 'left' => ['danger', 'Ausgeschieden']][$employee->status] ?? ['neutral', $employee->status];
+                @endphp
+                <div wire:key="emp-{{ $employee->id }}"
+                     class="group relative grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,1.3fr)_minmax(0,1.3fr)_minmax(0,1fr)_7rem_6.5rem_4rem] gap-x-4 gap-y-1 items-center px-4 py-2.5 border-b border-[color:var(--nx-line)] last:border-0 hover:bg-[color:var(--nx-hover)] {{ $employee->status !== 'active' ? 'opacity-60' : '' }}">
+                    <a href="{{ route('people.employees.show', $employee->id) }}" wire:navigate
+                       class="min-w-0 flex items-center gap-2 font-medium text-[color:var(--nx-text)] after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-[color:var(--nx-accent)]">
+                        <span class="truncate">{{ $employee->display_name }}</span>
+                        @if($employee->isAgent())<x-nx-badge variant="info">Agent</x-nx-badge>@endif
+                    </a>
+                    <span class="md:hidden justify-self-end"><x-nx-badge :variant="$sc[0]" dot>{{ $sc[1] }}</x-nx-badge></span>
+                    <span class="col-span-2 md:col-span-1 min-w-0 truncate text-sm {{ $pos ? 'text-[color:var(--nx-text)]' : 'text-[color:var(--nx-faint)]' }}">{{ $pos['position'] ?? 'keine Stelle' }}</span>
+                    <span class="hidden md:block min-w-0 truncate text-sm text-[color:var(--nx-muted)]">{{ $pos['unit'] ?? '—' }}</span>
+                    <span class="hidden md:block text-xs tabular-nums text-[color:var(--nx-muted)]">{{ $since?->format('d.m.Y') ?? '—' }}</span>
+                    <span class="hidden md:block"><x-nx-badge :variant="$sc[0]" dot>{{ $sc[1] }}</x-nx-badge></span>
+                    <span class="hidden md:flex justify-end relative z-10">
+                        <x-nx-button variant="ghost" size="sm" icon wire:click="openEdit({{ $employee->id }})" title="Stammdaten bearbeiten" class="opacity-0 group-hover:opacity-100 focus:opacity-100">
+                            @svg('heroicon-o-pencil', 'w-4 h-4')
+                        </x-nx-button>
+                    </span>
+                </div>
+            @empty
+                <x-nx-empty icon="heroicon-o-users">
+                    Keine Mitarbeiter in dieser Ansicht.
+                    <x-slot name="action">
+                        <x-nx-button variant="primary" size="sm" wire:click="openCreate">
+                            @svg('heroicon-o-plus', 'w-4 h-4') Mitarbeiter anlegen
+                        </x-nx-button>
+                    </x-slot>
+                </x-nx-empty>
+            @endforelse
         </x-nx-card>
 
         {{-- Create/Edit Modal --}}

@@ -1,54 +1,43 @@
 <div>
     {{-- Modul-Header --}}
-    <div x-show="!collapsed" class="p-3 text-sm italic text-[var(--nx-text)] uppercase border-b border-[color:var(--nx-line)] mb-2">
+    <div x-show="!collapsed" class="p-3 text-sm italic text-[color:var(--nx-text)] uppercase border-b border-[color:var(--nx-line)] mb-2">
         People
     </div>
 
-    {{-- Abschnitt: Allgemein --}}
-    <x-ui-sidebar-list label="Allgemein">
+    {{-- Bereiche stehen in der Actionbar; hier nur der Einstieg und die Mitarbeiter selbst --}}
+    <x-ui-sidebar-list label="People">
         <x-ui-sidebar-item :href="route('people.dashboard')">
-            @svg('heroicon-o-home', 'w-4 h-4 text-[var(--nx-text)]')
-            <span class="ml-2 text-sm">Dashboard</span>
+            @svg('heroicon-o-home', 'w-4 h-4 text-[color:var(--nx-text)]')
+            <span class="ml-2 text-sm">Übersicht</span>
         </x-ui-sidebar-item>
     </x-ui-sidebar-list>
 
-    {{-- Abschnitt: Verwaltung --}}
-    <x-ui-sidebar-list label="Verwaltung">
-        <x-ui-sidebar-item :href="route('people.employees.index')">
-            @svg('heroicon-o-users', 'w-4 h-4 text-[var(--nx-text)]')
-            <span class="ml-2 text-sm">Mitarbeiter</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('people.employers.index')">
-            @svg('heroicon-o-building-office-2', 'w-4 h-4 text-[var(--nx-text)]')
-            <span class="ml-2 text-sm">Arbeitgeber</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('people.job-profiles.index')">
-            @svg('heroicon-o-identification', 'w-4 h-4 text-[var(--nx-text)]')
-            <span class="ml-2 text-sm">Stellen</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('people.skills.index')">
-            @svg('heroicon-o-academic-cap', 'w-4 h-4 text-[var(--nx-text)]')
-            <span class="ml-2 text-sm">Skills</span>
-        </x-ui-sidebar-item>
-    </x-ui-sidebar-list>
+    @foreach(['Agenten' => $agents, 'Menschen' => $humans] as $label => $list)
+        @if($list->isNotEmpty())
+            <div x-show="!collapsed">
+                <x-ui-sidebar-list :label="$label">
+                    @foreach($list as $e)
+                        <x-ui-sidebar-item :href="route('people.employees.show', $e->id)">
+                            @svg($e->kind === 'agent' ? 'heroicon-o-cpu-chip' : 'heroicon-o-user', 'w-4 h-4 text-[color:var(--nx-muted)] shrink-0')
+                            <span class="ml-2 text-sm truncate">{{ $e->display_name }}</span>
+                        </x-ui-sidebar-item>
+                    @endforeach
+                </x-ui-sidebar-list>
+            </div>
+        @endif
+    @endforeach
 
     {{-- Collapsed: Icons-only --}}
     <div x-show="collapsed" class="px-2 py-2 border-b border-[color:var(--nx-line)]">
         <div class="flex flex-col gap-2">
-            <a href="{{ route('people.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
+            <a href="{{ route('people.dashboard') }}" wire:navigate title="Übersicht" class="flex items-center justify-center p-2 rounded-md text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]">
                 @svg('heroicon-o-home', 'w-5 h-5')
             </a>
-            <a href="{{ route('people.employees.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
+            <a href="{{ route('people.employees.index') }}" wire:navigate title="Mitarbeiter" class="flex items-center justify-center p-2 rounded-md text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]">
                 @svg('heroicon-o-users', 'w-5 h-5')
             </a>
-            <a href="{{ route('people.employers.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
-                @svg('heroicon-o-building-office-2', 'w-5 h-5')
-            </a>
-            <a href="{{ route('people.job-profiles.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
+            <a href="{{ route('people.job-profiles.index') }}" wire:navigate title="Stellen" class="flex items-center justify-center p-2 rounded-md text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]">
                 @svg('heroicon-o-identification', 'w-5 h-5')
-            </a>
-            <a href="{{ route('people.skills.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
-                @svg('heroicon-o-academic-cap', 'w-5 h-5')
             </a>
         </div>
     </div>
