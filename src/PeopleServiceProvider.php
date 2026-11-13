@@ -153,6 +153,9 @@ class PeopleServiceProvider extends ServiceProvider
             $registry->register(new \Platform\People\Tools\SyncEmployeeJobProfileRolesTool());
             $registry->register(new \Platform\People\Tools\GetEmployeeJobProfileEffectiveRolesTool());
 
+            // Entwicklungs-Karten (Reife, Erfahrung, Handlungsbedarf)
+            $registry->register(new \Platform\People\Tools\GetDevelopmentTool());
+
             // Gedächtnis der Agenten (Regeln lesen, Kuratier-Entwürfe) + alte organization-Namen als Alias
             $registry->register(new \Platform\People\Tools\ListAgentRulesTool());
             $registry->register(new \Platform\People\Tools\CreateAgentCurationDraftTool());

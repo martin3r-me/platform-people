@@ -54,6 +54,10 @@
         @if($tab === 'gedaechtnis')
             @livewire('people.employee.memory', ['employee' => $employee], key('employee-memory-' . $employee->id))
         @else
+        @if($developmentCard)
+            <x-people::development-card :card="$developmentCard" />
+        @endif
+
         {{-- Anstellung (Arbeitsvertrag) --}}
         <x-nx-section icon="heroicon-o-briefcase" title="Anstellung" hint="{{ $employments->count() }}">
             <x-slot name="action">

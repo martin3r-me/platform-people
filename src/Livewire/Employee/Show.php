@@ -291,6 +291,7 @@ class Show extends Component
 
         return view('people::livewire.employee.show', [
             'employee'           => $employee,
+            'developmentCard'    => $this->tab === 'uebersicht' ? (new \Platform\People\Services\DevelopmentCard())->forEmployee($employee) : null,
             'employments'        => $employments,
             'skills'             => $skills,
             'assignments'        => $assignments,
