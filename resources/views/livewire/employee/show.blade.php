@@ -4,68 +4,45 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
+        <x-people::actionbar :crumbs="[
             ['label' => 'Mitarbeiter', 'href' => route('people.employees.index')],
             ['label' => $employee->display_name],
         ]">
-            <x-nx-button variant="ghost" :href="route('people.employees.index')">
-                @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                <span>Zurück</span>
-            </x-nx-button>
-        </x-ui-page-actionbar>
+            <x-slot:create>
+                <x-people::menu-item icon="heroicon-o-briefcase" wire:click="openEmpCreate">Arbeitsvertrag</x-people::menu-item>
+            </x-slot:create>
+            @if($employee->org_entity_id && $directoryAvailable)
+                <x-slot:more>
+                    <x-people::menu-item icon="heroicon-o-link" wire:click="openCrmLink">Mit CRM verknüpfen</x-people::menu-item>
+                </x-slot:more>
+            @endif
+        </x-people::actionbar>
     </x-slot>
 
-    {{-- Informationen --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Informationen" width="w-80" :defaultOpen="true" side="left">
-            <div class="p-6 space-y-4">
-                <div class="space-y-2">
-                    <div class="text-lg font-semibold text-[color:var(--nx-text)]">{{ $employee->display_name }}</div>
-                    @php
-                        $sc = ['active' => ['success','Aktiv'], 'inactive' => ['neutral','Inaktiv'], 'left' => ['danger','Ausgeschieden']][$employee->status] ?? ['neutral', $employee->status];
-                    @endphp
-                    <div class="flex items-center gap-1">
-                        <x-nx-badge variant="{{ $sc[0] }}" dot>{{ $sc[1] }}</x-nx-badge>
-                        @if($employee->isAgent())<x-nx-badge variant="info">Agent</x-nx-badge>@endif
-                    </div>
-                </div>
-                <div class="space-y-1">
-                    <x-nx-property-row icon="heroicon-o-identification" label="Personalnummer">{{ $employee->employee_number ?? '—' }}</x-nx-property-row>
-                    <x-nx-property-row icon="heroicon-o-academic-cap" label="Skills">{{ $employee->skills_count }}</x-nx-property-row>
-                    <x-nx-property-row icon="heroicon-o-briefcase" label="Anstellungen">{{ $employments->count() }}</x-nx-property-row>
-                    <x-nx-property-row icon="heroicon-o-share" label="Personen-Knoten">{{ $employee->org_entity_id ? ('#' . $employee->org_entity_id) : '— nicht verknüpft —' }}</x-nx-property-row>
-                </div>
 
-                {{-- Aus Org abgeleitete Perspektive --}}
-                @if($orgContext['carrier'] || $orgContext['department'])
-                    <div class="pt-4 border-t border-[color:var(--nx-line)]">
-                        <h3 class="text-[color:var(--nx-faint)] text-xs uppercase tracking-wide mb-2">Perspektive (aus Org)</h3>
-                        <div class="space-y-1">
-                            @if($orgContext['carrier'])
-                                <x-nx-property-row icon="heroicon-o-building-office" label="Carrier">{{ $orgContext['carrier']['name'] }}</x-nx-property-row>
-                            @endif
-                            @if($orgContext['department'])
-                                <x-nx-property-row icon="heroicon-o-rectangle-group" label="Abteilung">
-                                    {{ $orgContext['department']['name'] }}
-                                    @if(!empty($orgContext['source']))<span class="text-[10px] text-[color:var(--nx-faint)]">({{ $orgContext['source'] }})</span>@endif
-                                </x-nx-property-row>
-                            @endif
-                        </div>
-                        <p class="text-[10px] text-[color:var(--nx-faint)] mt-2 italic">abgeleitet aus dem Org-Graphen</p>
-                    </div>
-                @endif
+    <x-people::body>
+        {{-- Kopf: wer, Status, Stammdaten, Perspektive aus der Organisation --}}
+        @php
+            $sc = ['active' => ['success','Aktiv'], 'inactive' => ['neutral','Inaktiv'], 'left' => ['danger','Ausgeschieden']][$employee->status] ?? ['neutral', $employee->status];
+        @endphp
+        <header class="space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <h1 class="text-xl font-semibold text-[color:var(--nx-text)]">{{ $employee->display_name }}</h1>
+                <x-nx-badge variant="{{ $sc[0] }}" dot>{{ $sc[1] }}</x-nx-badge>
+                @if($employee->isAgent())<x-nx-badge variant="info">Agent</x-nx-badge>@endif
             </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container spacing="space-y-6">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[color:var(--nx-muted)]">
+                <span class="inline-flex items-center gap-1">@svg('heroicon-o-identification', 'w-3.5 h-3.5') Personalnr. {{ $employee->employee_number ?? '—' }}</span>
+                <span class="inline-flex items-center gap-1">@svg('heroicon-o-share', 'w-3.5 h-3.5') {{ $employee->org_entity_id ? ('Knoten #' . $employee->org_entity_id) : 'kein Personen-Knoten' }}</span>
+                @if($orgContext['carrier'])
+                    <span class="inline-flex items-center gap-1">@svg('heroicon-o-building-office', 'w-3.5 h-3.5') {{ $orgContext['carrier']['name'] }}</span>
+                @endif
+                @if($orgContext['department'])
+                    <span class="inline-flex items-center gap-1" title="abgeleitet aus dem Org-Graphen{{ !empty($orgContext['source']) ? ' (' . $orgContext['source'] . ')' : '' }}">@svg('heroicon-o-rectangle-group', 'w-3.5 h-3.5') {{ $orgContext['department']['name'] }}</span>
+                @endif
+                <span class="tabular-nums">{{ $employments->count() }} {{ $employments->count() === 1 ? 'Anstellung' : 'Anstellungen' }} · {{ $employee->skills_count }} Skills</span>
+            </div>
+        </header>
         {{-- Anstellung (Arbeitsvertrag) --}}
         <x-nx-section icon="heroicon-o-briefcase" title="Anstellung" hint="{{ $employments->count() }}">
             <x-slot name="action">
@@ -146,14 +123,6 @@
 
         {{-- CRM-Kontakt (graph-nativ am Personen-Knoten) --}}
         <x-nx-section icon="heroicon-o-user-circle" title="CRM-Kontakt">
-            @if($employee->org_entity_id && $directoryAvailable)
-                <x-slot name="action">
-                    <x-nx-button variant="secondary" wire:click="openCrmLink">
-                        @svg('heroicon-o-link', 'w-4 h-4')
-                        <span>Mit CRM verknüpfen</span>
-                    </x-nx-button>
-                </x-slot>
-            @endif
 
             <x-nx-card>
                 @if(!$employee->org_entity_id)
@@ -172,7 +141,7 @@
                 @endif
             </x-nx-card>
         </x-nx-section>
-    </x-ui-page-container>
+    </x-people::body>
 
     {{-- Anstellungs-Modal (Arbeitsvertrag) --}}
     <x-nx-modal size="lg" wire:model="showEmpModal">

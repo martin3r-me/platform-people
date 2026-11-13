@@ -4,93 +4,43 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
-            ['label' => 'Jobprofile', 'href' => route('people.job-profiles.index')],
+        <x-people::actionbar :crumbs="[
+            ['label' => 'Stellen', 'href' => route('people.job-profiles.index')],
             ['label' => $jobProfile->name ?? 'Details'],
         ]" />
     </x-slot>
 
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Informationen" width="w-80" :defaultOpen="true" side="left">
-            <div class="p-6 space-y-1">
-                {{-- Status --}}
-                <x-nx-property-row icon="heroicon-o-flag" label="Status">
-                    <x-nx-badge variant="{{ $jobProfile->status === 'active' ? 'success' : ($jobProfile->status === 'archived' ? 'neutral' : 'info') }}" dot>
-                        {{ ucfirst($jobProfile->status) }}
-                    </x-nx-badge>
-                </x-nx-property-row>
 
-                {{-- Einheit (Org-Wahrheit) --}}
-                <div class="pb-3">
+    <x-people::body>
+        <div class="space-y-6">
+            {{-- Kopf: Stelle, Einheit (Org-Wahrheit), Gültigkeit, Kennzahlen --}}
+            <header class="flex flex-col lg:flex-row lg:items-end gap-4">
+                <div class="flex-1 min-w-0 space-y-2">
+                    <h1 class="text-xl font-semibold text-[color:var(--nx-text)]">{{ $jobProfile->name }}</h1>
+                    <div class="flex flex-wrap items-center gap-2">
+                        @if($jobProfile->level)
+                            <x-nx-badge variant="neutral">{{ ucfirst($jobProfile->level) }}</x-nx-badge>
+                        @endif
+                        @if($jobProfile->job_family)
+                            <x-nx-badge variant="neutral">{{ $jobProfile->job_family }}</x-nx-badge>
+                        @endif
+                        <x-nx-badge variant="{{ $jobProfile->status === 'active' ? 'success' : ($jobProfile->status === 'archived' ? 'neutral' : 'info') }}" dot>
+                            {{ ucfirst($jobProfile->status) }}
+                        </x-nx-badge>
+                        <span class="text-xs text-[color:var(--nx-muted)] tabular-nums">
+                            gültig {{ $jobProfile->effective_from?->format('d.m.Y') ?? 'seit jeher' }}{{ $jobProfile->effective_to ? ' – ' . $jobProfile->effective_to->format('d.m.Y') : '' }}
+                            · {{ $this->assignments->count() }} Zuweisungen · {{ $this->skillRecords->count() }} Skills · {{ $this->roles->count() }} Rollen
+                        </span>
+                    </div>
+                </div>
+                <div class="w-full lg:w-80 shrink-0">
                     <x-nx-input-select name="unitId" label="Gehört zur Einheit" wire:model.live="unitId"
                         nullable nullLabel="— keine Einheit —"
                         :options="$unitOptions"
-                        hint="Firma oder Abteilung; daraus ergibt sich der Stellenplan in der Organisation."
+                        hint="Daraus ergibt sich der Stellenplan in der Organisation."
                         size="sm" />
                 </div>
-
-                {{-- Level --}}
-                @if($jobProfile->level)
-                    <x-nx-property-row icon="heroicon-o-chart-bar-square" label="Level">
-                        <x-nx-badge variant="neutral">{{ ucfirst($jobProfile->level) }}</x-nx-badge>
-                    </x-nx-property-row>
-                @endif
-
-                {{-- Job Family --}}
-                @if($jobProfile->job_family)
-                    <x-nx-property-row icon="heroicon-o-rectangle-group" label="Job Family">
-                        <x-nx-badge variant="neutral">{{ $jobProfile->job_family }}</x-nx-badge>
-                    </x-nx-property-row>
-                @endif
-
-                {{-- Gültigkeit --}}
-                <x-nx-property-row icon="heroicon-o-calendar" label="Gültigkeit">
-                    {{ $jobProfile->effective_from?->format('d.m.Y') ?? '—' }}
-                    @if($jobProfile->effective_to)
-                        – {{ $jobProfile->effective_to->format('d.m.Y') }}
-                    @endif
-                </x-nx-property-row>
-
-                {{-- Kennzahlen --}}
-                <div class="pt-4">
-                    <x-nx-stat-grid cols="3">
-                        <x-nx-stat label="Zuweisungen" value="{{ $this->assignments->count() }}" icon="heroicon-o-user-group" />
-                        <x-nx-stat label="Skills" value="{{ $this->skillRecords->count() }}" icon="heroicon-o-academic-cap" />
-                        <x-nx-stat label="Rollen" value="{{ $this->roles->count() }}" icon="heroicon-o-shield-check" />
-                    </x-nx-stat-grid>
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container>
-        <div class="space-y-6">
-            {{-- Kopf --}}
-            <x-nx-card>
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 class="text-xl font-semibold text-[color:var(--nx-text)]">{{ $jobProfile->name }}</h1>
-                        <div class="flex items-center gap-2 mt-2">
-                            @if($jobProfile->level)
-                                <x-nx-badge variant="neutral">{{ ucfirst($jobProfile->level) }}</x-nx-badge>
-                            @endif
-                            @if($jobProfile->job_family)
-                                <x-nx-badge variant="neutral">{{ $jobProfile->job_family }}</x-nx-badge>
-                            @endif
-                            <x-nx-badge variant="{{ $jobProfile->status === 'active' ? 'success' : ($jobProfile->status === 'archived' ? 'neutral' : 'info') }}" dot>
-                                {{ ucfirst($jobProfile->status) }}
-                            </x-nx-badge>
-                        </div>
-                    </div>
-                </div>
-            </x-nx-card>
+            </header>
 
             {{-- Übersicht --}}
             <x-nx-section icon="heroicon-o-document-text" title="Übersicht">
@@ -311,5 +261,5 @@
                 </x-nx-card>
             </x-nx-section>
         </div>
-    </x-ui-page-container>
+    </x-people::body>
 </x-ui-page>

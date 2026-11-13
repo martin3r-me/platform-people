@@ -4,50 +4,30 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
-            ['label' => 'Jobprofile'],
-        ]">
-            <x-nx-button variant="primary" wire:click="openCreate">
-                @svg('heroicon-o-plus', 'w-4 h-4')
-                <span>Neu</span>
-            </x-nx-button>
-        </x-ui-page-actionbar>
-    </x-slot>
-
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true" side="left">
-            <div class="p-6 space-y-6">
-                <div>
-                    <h3 class="text-sm font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name..." size="sm" />
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Status</h3>
-                    <x-nx-input-select name="statusFilter" wire:model.live="statusFilter" nullable nullLabel="Alle Status" size="sm" :options="[
-                        ['value' => 'active', 'label' => 'Aktiv'],
-                        ['value' => 'draft', 'label' => 'Entwurf'],
-                        ['value' => 'archived', 'label' => 'Archiviert'],
-                    ]" />
-                </div>
+        <x-people::actionbar :crumbs="[['label' => 'Stellen']]"
+            :filters-active="($search !== '' ? 1 : 0) + ($statusFilter !== '' ? 1 : 0) + ($jobFamilyFilter ? 1 : 0)">
+            <x-slot:filters>
+                <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name suchen…" size="sm" />
+                <x-people::filter-group label="Status">
+                    <x-people::chip :active="! $statusFilter" wire:click="$set('statusFilter', '')">Alle</x-people::chip>
+                    @foreach(['active' => 'Aktiv', 'draft' => 'Entwurf', 'archived' => 'Archiviert'] as $value => $label)
+                        <x-people::chip :active="$statusFilter === $value" wire:click="$set('statusFilter', '{{ $value }}')">{{ $label }}</x-people::chip>
+                    @endforeach
+                </x-people::filter-group>
                 @if(count($this->jobFamilies) > 0)
-                    <div>
-                        <h3 class="text-sm font-bold text-[color:var(--nx-text)] uppercase tracking-wider mb-3">Job-Family</h3>
-                        <x-nx-input-select name="jobFamilyFilter" wire:model.live="jobFamilyFilter" nullable nullLabel="Alle Families" size="sm"
-                            :options="collect($this->jobFamilies)->map(fn($family) => ['value' => $family, 'label' => $family])->all()" />
-                    </div>
+                    <x-people::filter-group label="Job-Family">
+                        <x-people::chip :active="! $jobFamilyFilter" wire:click="$set('jobFamilyFilter', null)">Alle</x-people::chip>
+                        @foreach($this->jobFamilies as $family)
+                            <x-people::chip :active="$jobFamilyFilter === $family" wire:click="$set('jobFamilyFilter', {{ \Illuminate\Support\Js::from($family) }})">{{ $family }}</x-people::chip>
+                        @endforeach
+                    </x-people::filter-group>
                 @endif
-            </div>
-        </x-ui-page-sidebar>
+            </x-slot:filters>
+        </x-people::actionbar>
     </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
-        </x-ui-page-sidebar>
-    </x-slot>
 
-    <x-ui-page-container>
+    <x-people::body>
         <x-nx-card flush>
             <x-nx-table>
                 <x-nx-table-header>
@@ -231,5 +211,5 @@
                 </div>
             </x-slot>
         </x-nx-modal>
-    </x-ui-page-container>
+    </x-people::body>
 </x-ui-page>

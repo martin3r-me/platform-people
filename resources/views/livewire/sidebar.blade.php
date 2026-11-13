@@ -24,7 +24,7 @@
         </x-ui-sidebar-item>
         <x-ui-sidebar-item :href="route('people.job-profiles.index')">
             @svg('heroicon-o-identification', 'w-4 h-4 text-[var(--nx-text)]')
-            <span class="ml-2 text-sm">Jobprofile</span>
+            <span class="ml-2 text-sm">Stellen</span>
         </x-ui-sidebar-item>
         <x-ui-sidebar-item :href="route('people.skills.index')">
             @svg('heroicon-o-academic-cap', 'w-4 h-4 text-[var(--nx-text)]')

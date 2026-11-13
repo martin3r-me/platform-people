@@ -4,51 +4,29 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
-            ['label' => 'Skills'],
-        ]">
-            <x-nx-button variant="secondary" size="sm" wire:click="$toggle('showMatrix')">
+        <x-people::actionbar :crumbs="[['label' => 'Skills']]"
+            :filters-active="($search !== '' ? 1 : 0) + ($categoryFilter ? 1 : 0)">
+            <x-slot:filters>
+                <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Skill suchen…" size="sm" />
+                <x-people::filter-group label="Kategorie">
+                    <x-people::chip :active="! $categoryFilter" wire:click="$set('categoryFilter', '')">Alle</x-people::chip>
+                    @foreach(['technical' => 'Technical', 'methodical' => 'Methodical', 'domain' => 'Domain', 'social' => 'Social'] as $value => $label)
+                        <x-people::chip :active="$categoryFilter === $value" wire:click="$set('categoryFilter', '{{ $value }}')">{{ $label }}</x-people::chip>
+                    @endforeach
+                </x-people::filter-group>
+            </x-slot:filters>
+            <x-slot:more>
                 @if($showMatrix)
-                    @svg('heroicon-o-list-bullet', 'w-4 h-4')
-                    <span>Katalog</span>
+                    <x-people::menu-item icon="heroicon-o-list-bullet" wire:click="$set('showMatrix', false)">Als Katalog zeigen</x-people::menu-item>
                 @else
-                    @svg('heroicon-o-table-cells', 'w-4 h-4')
-                    <span>Matrix</span>
+                    <x-people::menu-item icon="heroicon-o-table-cells" wire:click="$set('showMatrix', true)">Als Matrix zeigen</x-people::menu-item>
                 @endif
-            </x-nx-button>
-            <x-nx-button variant="primary" size="sm" wire:click="openCreate">
-                @svg('heroicon-o-plus', 'w-4 h-4')
-                <span>Neu</span>
-            </x-nx-button>
-        </x-ui-page-actionbar>
+            </x-slot:more>
+        </x-people::actionbar>
     </x-slot>
 
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true" side="left">
-            <div class="p-6 space-y-6">
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Skill-Name..." size="sm" />
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Kategorie</h3>
-                    <x-nx-input-select name="categoryFilter" wire:model.live="categoryFilter"
-                        nullable nullLabel="Alle Kategorien"
-                        :options="['technical' => 'Technical', 'methodical' => 'Methodical', 'domain' => 'Domain', 'social' => 'Social']"
-                        size="sm" />
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container>
+    <x-people::body>
         @if(!$showMatrix)
             {{-- ═══ Katalog-Ansicht ═══ --}}
             <x-nx-card flush>
@@ -68,9 +46,9 @@
                                 <x-nx-table-cell>
                                     <x-nx-badge variant="neutral">{{ ucfirst($skill->category) }}</x-nx-badge>
                                 </x-nx-table-cell>
-                                <x-nx-table-cell><span class="text-[var(--ui-muted)] text-xs max-w-xs truncate block">{{ $skill->description ?? '—' }}</span></x-nx-table-cell>
+                                <x-nx-table-cell><span class="text-[color:var(--nx-muted)] text-xs max-w-xs truncate block">{{ $skill->description ?? '—' }}</span></x-nx-table-cell>
                                 <x-nx-table-cell align="center">
-                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $skill->employee_skills_count }}</span>
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[color:var(--nx-hover)] text-[color:var(--nx-text)]">{{ $skill->employee_skills_count }}</span>
                                 </x-nx-table-cell>
                                 <x-nx-table-cell align="center">
                                     <button wire:click="toggleActive({{ $skill->id }})" class="cursor-pointer">
@@ -129,10 +107,10 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
-                                <tr class="border-b border-[var(--ui-border)]">
-                                    <th class="text-left py-3 px-4 text-xs text-[var(--ui-muted)] uppercase sticky left-0 bg-white z-10 min-w-[200px]">Skill</th>
+                                <tr class="border-b border-[color:var(--nx-line)]">
+                                    <th class="text-left py-3 px-4 text-xs text-[color:var(--nx-muted)] uppercase sticky left-0 bg-[color:var(--nx-surface)] z-10 min-w-[200px]">Skill</th>
                                     @foreach($employees as $employee)
-                                        <th class="text-center py-3 px-3 text-xs text-[var(--ui-muted)] min-w-[100px]">
+                                        <th class="text-center py-3 px-3 text-xs text-[color:var(--nx-muted)] min-w-[100px]">
                                             <div class="truncate max-w-[100px]" title="{{ $employee->display_name }}">{{ $employee->display_name }}</div>
                                         </th>
                                     @endforeach
@@ -140,8 +118,8 @@
                             </thead>
                             <tbody>
                                 @foreach($matrixData as $row)
-                                    <tr class="border-b border-[var(--ui-border)]/50 hover:bg-[var(--ui-muted-5)]">
-                                        <td class="py-2 px-4 font-medium text-[var(--ui-secondary)] sticky left-0 bg-white z-10">
+                                    <tr class="border-b border-[color:var(--nx-line)]/50 hover:bg-[color:var(--nx-hover)]">
+                                        <td class="py-2 px-4 font-medium text-[color:var(--nx-text)] sticky left-0 bg-[color:var(--nx-surface)] z-10">
                                             <div class="flex items-center gap-2">
                                                 <span>{{ $row['skill']->name }}</span>
                                                 <x-nx-badge variant="neutral">{{ ucfirst($row['skill']->category) }}</x-nx-badge>
@@ -151,7 +129,7 @@
                                             <td class="py-2 px-3 text-center">
                                                 <button
                                                     wire:click="openAssignModal({{ $row['skill']->id }}, {{ $cell['employee_id'] }})"
-                                                    class="w-full flex items-center justify-center min-h-[28px] rounded transition-colors hover:bg-[var(--ui-primary-5)] cursor-pointer"
+                                                    class="w-full flex items-center justify-center min-h-[28px] rounded transition-colors hover:bg-[color:var(--nx-accent)]/[0.08] cursor-pointer"
                                                 >
                                                     @if($cell['level'])
                                                         @php
@@ -164,7 +142,7 @@
                                                         @endphp
                                                         <x-nx-badge :variant="$lc['variant']">{{ $lc['label'] }}</x-nx-badge>
                                                     @else
-                                                        <span class="text-[var(--ui-border)]">—</span>
+                                                        <span class="text-[color:var(--nx-line)]">—</span>
                                                     @endif
                                                 </button>
                                             </td>
@@ -177,7 +155,7 @@
                 </x-nx-card>
 
                 {{-- Legende --}}
-                <div class="mt-3 flex items-center gap-4 text-xs text-[var(--ui-muted)]">
+                <div class="mt-3 flex items-center gap-4 text-xs text-[color:var(--nx-muted)]">
                     <span class="flex items-center gap-1"><x-nx-badge variant="neutral">B</x-nx-badge> Basic</span>
                     <span class="flex items-center gap-1"><x-nx-badge variant="info">A</x-nx-badge> Advanced</span>
                     <span class="flex items-center gap-1"><x-nx-badge variant="success">E</x-nx-badge> Expert</span>
@@ -232,5 +210,5 @@
                 </div>
             </x-slot>
         </x-nx-modal>
-    </x-ui-page-container>
+    </x-people::body>
 </x-ui-page>

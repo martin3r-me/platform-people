@@ -74,6 +74,7 @@ class PeopleServiceProvider extends ServiceProvider
 
         // Views & Livewire
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'people');
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(__DIR__ . '/../resources/views/components', 'people');
         $this->registerLivewireComponents();
 
         // Tools registrieren (loose gekoppelt - für AI/Chat)

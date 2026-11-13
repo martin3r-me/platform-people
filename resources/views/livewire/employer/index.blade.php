@@ -4,36 +4,16 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
-            ['label' => 'Arbeitgeber'],
-        ]">
-            <x-nx-button variant="primary" size="sm" wire:click="openCreate">
-                @svg('heroicon-o-plus', 'w-4 h-4')
-                <span>Neu</span>
-            </x-nx-button>
-        </x-ui-page-actionbar>
+        <x-people::actionbar :crumbs="[['label' => 'Arbeitgeber']]" :filters-active="$search !== '' ? 1 : 0">
+            <x-slot:filters>
+                <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name suchen…" size="sm" />
+                <p class="text-xs text-[color:var(--nx-muted)]">Ein Arbeitgeber ist ein Org-Carrier (z. B. eine Gesellschaft) mit HR-Defaults für Verträge.</p>
+            </x-slot:filters>
+        </x-people::actionbar>
     </x-slot>
 
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true" side="left">
-            <div class="p-6 space-y-6">
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name..." size="sm" />
-                </div>
-                <p class="text-xs text-[var(--ui-muted)]">Ein Arbeitgeber ist ein Org-Carrier (z. B. eine Gesellschaft) mit HR-Defaults für Verträge.</p>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container>
+    <x-people::body>
         <x-nx-card flush>
             <x-nx-table>
                 <x-nx-table-header>
@@ -53,7 +33,7 @@
                             <x-nx-table-cell align="center">{{ $employer->default_vacation_days ?? '—' }}</x-nx-table-cell>
                             <x-nx-table-cell align="center">{{ $employer->default_weekly_hours ? rtrim(rtrim((string)$employer->default_weekly_hours,'0'),'.') : '—' }}</x-nx-table-cell>
                             <x-nx-table-cell align="center">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $employer->employments_count }}</span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[color:var(--nx-hover)] text-[color:var(--nx-text)]">{{ $employer->employments_count }}</span>
                             </x-nx-table-cell>
                             <x-nx-table-cell align="center">
                                 @if($employer->is_active)
@@ -101,7 +81,7 @@
                         :options="$this->carrierOptions"
                         size="sm" />
                     @if(empty($this->carrierOptions))
-                        <p class="text-xs text-[var(--ui-muted)] mt-1">Keine Carrier gefunden (Organization-Modul nicht verfügbar oder keine Carrier gepflegt).</p>
+                        <p class="text-xs text-[color:var(--nx-muted)] mt-1">Keine Carrier gefunden (Organization-Modul nicht verfügbar oder keine Carrier gepflegt).</p>
                     @endif
                 </div>
                 <x-nx-input-text name="form.name" label="Name" wire:model="form.name" placeholder="Anzeigename" size="sm" />
@@ -120,5 +100,5 @@
                 </x-nx-button>
             </x-slot>
         </x-nx-modal>
-    </x-ui-page-container>
+    </x-people::body>
 </x-ui-page>

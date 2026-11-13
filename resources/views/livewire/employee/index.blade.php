@@ -4,55 +4,35 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'People', 'href' => route('people.dashboard'), 'icon' => 'users'],
-            ['label' => 'Mitarbeiter'],
-        ]">
+        <x-people::actionbar :crumbs="[['label' => 'Mitarbeiter']]"
+            :filters-active="($search !== '' ? 1 : 0) + ($kindFilter ? 1 : 0) + ($statusFilter ? 1 : 0)">
+            <x-slot:filters>
+                <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name suchen…" size="sm" />
+                <x-people::filter-group label="Art">
+                    <x-people::chip :active="! $kindFilter" wire:click="$set('kindFilter', '')">Alle</x-people::chip>
+                    @foreach(\Platform\People\Models\Employee::KIND_LABELS as $value => $label)
+                        <x-people::chip :active="$kindFilter === $value" wire:click="$set('kindFilter', '{{ $value }}')">{{ $label }}</x-people::chip>
+                    @endforeach
+                </x-people::filter-group>
+                <x-people::filter-group label="Status">
+                    <x-people::chip :active="! $statusFilter" wire:click="$set('statusFilter', '')">Alle</x-people::chip>
+                    @foreach(['active' => 'Aktiv', 'inactive' => 'Inaktiv', 'left' => 'Ausgeschieden'] as $value => $label)
+                        <x-people::chip :active="$statusFilter === $value" wire:click="$set('statusFilter', '{{ $value }}')">{{ $label }}</x-people::chip>
+                    @endforeach
+                </x-people::filter-group>
+            </x-slot:filters>
             @if($agentsToAdopt > 0)
-                <x-nx-button variant="ghost" size="sm" wire:click="adoptAgents" title="Agenten der Organisation als Mitarbeiter führen">
-                    @svg('heroicon-o-cpu-chip', 'w-4 h-4')
-                    <span>{{ $agentsToAdopt }} {{ $agentsToAdopt === 1 ? 'Agent' : 'Agenten' }} übernehmen</span>
-                </x-nx-button>
+                <x-slot:create>
+                    <x-people::menu-item icon="heroicon-o-cpu-chip" wire:click="adoptAgents" hint="aus der Organisation">
+                        {{ $agentsToAdopt }} {{ $agentsToAdopt === 1 ? 'Agent' : 'Agenten' }} übernehmen
+                    </x-people::menu-item>
+                </x-slot:create>
             @endif
-            <x-nx-button variant="primary" size="sm" wire:click="openCreate">
-                @svg('heroicon-o-plus', 'w-4 h-4')
-                <span>Neu</span>
-            </x-nx-button>
-        </x-ui-page-actionbar>
+        </x-people::actionbar>
     </x-slot>
 
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true" side="left">
-            <div class="p-6 space-y-6">
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-nx-input-text name="search" wire:model.live.debounce.300ms="search" placeholder="Name..." size="sm" />
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Art</h3>
-                    <x-nx-input-select name="kindFilter" wire:model.live="kindFilter"
-                        nullable nullLabel="Alle"
-                        :options="\Platform\People\Models\Employee::KIND_LABELS"
-                        size="sm" />
-                </div>
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Status</h3>
-                    <x-nx-input-select name="statusFilter" wire:model.live="statusFilter"
-                        nullable nullLabel="Alle Status"
-                        :options="['active' => 'Aktiv', 'inactive' => 'Inaktiv', 'left' => 'Ausgeschieden']"
-                        size="sm" />
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6 text-sm text-[var(--ui-muted)]">Keine Aktivitäten verfügbar</div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container>
+    <x-people::body>
         <x-nx-card flush>
             <x-nx-table>
                 <x-nx-table-header>
@@ -71,7 +51,7 @@
                             </x-nx-table-cell>
                             <x-nx-table-cell>{{ $employee->employee_number ?? '—' }}</x-nx-table-cell>
                             <x-nx-table-cell align="center">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ $employee->skills_count }}</span>
+                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium bg-[color:var(--nx-hover)] text-[color:var(--nx-text)]">{{ $employee->skills_count }}</span>
                             </x-nx-table-cell>
                             <x-nx-table-cell align="center">
                                 @php
@@ -138,5 +118,5 @@
                 </x-nx-button>
             </x-slot>
         </x-nx-modal>
-    </x-ui-page-container>
+    </x-people::body>
 </x-ui-page>

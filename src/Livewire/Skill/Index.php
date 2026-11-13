@@ -72,6 +72,14 @@ class Index extends Component
         return $grid;
     }
 
+    public function mount(): void
+    {
+        // "+ Neu" aus der Actionbar einer anderen People-Seite
+        if (request()->query('aktion') === 'neu') {
+            $this->openCreate();
+        }
+    }
+
     public function openCreate(): void
     {
         $this->editingId = null;
