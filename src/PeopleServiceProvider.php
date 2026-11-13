@@ -193,7 +193,9 @@ class PeopleServiceProvider extends ServiceProvider
                 continue;
             }
 
-            $aliasPath = str_replace(['\\', '/'], '.', Str::kebab(str_replace('.php', '', $relativePath)));
+            // Pro Segment kebaben — Str::kebab auf den ganzen Pfad macht aus "Employee/Memory" "employee/-memory".
+            $segments = preg_split('#[\\\\/]#', str_replace('.php', '', $relativePath));
+            $aliasPath = implode('.', array_map(fn ($s) => Str::kebab($s), $segments));
             $alias = $prefix . '.' . $aliasPath;
 
             Livewire::component($alias, $class);
