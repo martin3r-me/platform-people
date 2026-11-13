@@ -3,6 +3,7 @@
 namespace Platform\People\Livewire\Employee;
 
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\People\Models\Employee as EmployeeModel;
@@ -23,6 +24,10 @@ class Show extends Component
 {
     #[Locked]
     public int $employeeId;
+
+    /** Reiter: uebersicht | gedaechtnis (nur Agenten) */
+    #[Url(as: 'reiter')]
+    public string $tab = 'uebersicht';
 
     // CRM-Verknüpfung
     public bool $showCrmModal = false;
@@ -55,6 +60,11 @@ class Show extends Component
     public function mount(int $employee): void
     {
         $this->employeeId = $this->resolve($employee)->id;
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->tab = in_array($tab, ['uebersicht', 'gedaechtnis'], true) ? $tab : 'uebersicht';
     }
 
     protected function resolve(int $id): EmployeeModel
@@ -259,6 +269,9 @@ class Show extends Component
     public function render()
     {
         $employee = $this->resolve($this->employeeId)->loadCount('skills');
+        if ($this->tab === 'gedaechtnis' && ! ($employee->isAgent() && $employee->org_entity_id)) {
+            $this->tab = 'uebersicht';
+        }
 
         $employments = Employment::where('employee_id', $employee->id)
             ->with('employer')->orderByDesc('started_on')->get();

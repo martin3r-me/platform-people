@@ -43,6 +43,17 @@
                 <span class="tabular-nums">{{ $employments->count() }} {{ $employments->count() === 1 ? 'Anstellung' : 'Anstellungen' }} · {{ $employee->skills_count }} Skills</span>
             </div>
         </header>
+
+        @if($employee->isAgent() && $employee->org_entity_id)
+            <x-nx-tabs class="!mb-0">
+                <x-nx-tab :active="$tab === 'uebersicht'" wire:click="setTab('uebersicht')">Übersicht</x-nx-tab>
+                <x-nx-tab :active="$tab === 'gedaechtnis'" wire:click="setTab('gedaechtnis')">Gedächtnis</x-nx-tab>
+            </x-nx-tabs>
+        @endif
+
+        @if($tab === 'gedaechtnis')
+            @livewire('people.employee.memory', ['employee' => $employee], key('employee-memory-' . $employee->id))
+        @else
         {{-- Anstellung (Arbeitsvertrag) --}}
         <x-nx-section icon="heroicon-o-briefcase" title="Anstellung" hint="{{ $employments->count() }}">
             <x-slot name="action">
@@ -141,6 +152,7 @@
                 @endif
             </x-nx-card>
         </x-nx-section>
+        @endif
     </x-people::body>
 
     {{-- Anstellungs-Modal (Arbeitsvertrag) --}}

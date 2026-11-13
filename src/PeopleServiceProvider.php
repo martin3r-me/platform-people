@@ -22,6 +22,12 @@ class PeopleServiceProvider extends ServiceProvider
 
         // Personen-Verzeichnis-Registry (CRM liefert den Provider) — Singleton.
         $this->app->singleton(\Platform\People\Services\ContactDirectoryRegistry::class);
+
+        // Gedächtnis der Agenten: organization hält die Agent-Schnittstelle, people führt das Gedächtnis
+        // (guarded — nur wenn organization den Vertrag mitbringt).
+        if (interface_exists(\Platform\Organization\Contracts\AgentMemoryStore::class)) {
+            $this->app->singleton(\Platform\Organization\Contracts\AgentMemoryStore::class, \Platform\People\Services\AgentMemoryStore::class);
+        }
     }
 
     public function boot(): void
@@ -146,6 +152,12 @@ class PeopleServiceProvider extends ServiceProvider
             $registry->register(new \Platform\People\Tools\ListEmployeeJobProfilesTool());
             $registry->register(new \Platform\People\Tools\SyncEmployeeJobProfileRolesTool());
             $registry->register(new \Platform\People\Tools\GetEmployeeJobProfileEffectiveRolesTool());
+
+            // Gedächtnis der Agenten (Regeln lesen, Kuratier-Entwürfe) + alte organization-Namen als Alias
+            $registry->register(new \Platform\People\Tools\ListAgentRulesTool());
+            $registry->register(new \Platform\People\Tools\CreateAgentCurationDraftTool());
+            $registry->register(new \Platform\People\Tools\Legacy\OrganizationAgentRulesAlias());
+            $registry->register(new \Platform\People\Tools\Legacy\OrganizationAgentCurationsAlias());
         } catch (\Throwable $e) {
             // Registry nicht verfügbar (z. B. in Tests/CLI ohne Core-Tools) — ignorieren.
         }
