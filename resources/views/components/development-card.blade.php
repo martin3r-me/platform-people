@@ -92,6 +92,11 @@
                     @svg('heroicon-o-check-circle', 'w-4 h-4 text-[color:var(--nx-success)]') Nichts offen.
                 </div>
             @endforelse
+            @if(! empty($card['gaps']))
+                <div class="mt-2 text-xs text-[color:var(--nx-muted)]">
+                    Stammdaten unvollständig: {{ collect($card['gaps'])->pluck('text')->implode(' · ') }}
+                </div>
+            @endif
         </div>
     </div>
 </x-nx-card>

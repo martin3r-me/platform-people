@@ -50,6 +50,9 @@ class DevelopmentCard
 
     private const SEVERITY_WEIGHT = ['critical' => 3, 'warning' => 2, 'info' => 1];
 
+    /** Bei Menschen sind das Lücken im Stammdatensatz, kein Handlungsbedarf — sie stehen in der Karte, zählen aber nicht. */
+    private const HUMAN_DATA_GAPS = ['no_kpis', 'allocation', 'no_user', 'no_employment'];
+
     /** Karten aller aktiven Mitarbeiter des Teams, dringendster Handlungsbedarf zuerst. */
     public function forTeam(int $teamId): array
     {
@@ -130,6 +133,11 @@ class DevelopmentCard
             $this->humanNeeds($e, $needs);
         }
 
+        $gaps = [];
+        if (! $isAgent) {
+            $gaps = array_values(array_filter($needs, fn ($n) => in_array($n['key'], self::HUMAN_DATA_GAPS, true)));
+            $needs = array_values(array_filter($needs, fn ($n) => ! in_array($n['key'], self::HUMAN_DATA_GAPS, true)));
+        }
         usort($needs, fn ($a, $b) => self::SEVERITY_WEIGHT[$b['severity']] <=> self::SEVERITY_WEIGHT[$a['severity']]);
 
         return [
@@ -145,6 +153,7 @@ class DevelopmentCard
             'stage_label' => $stage ? self::STAGES[$stage] : null,
             'experience' => $experience,
             'needs' => $needs,
+            'gaps' => $gaps,
             'need_score' => array_sum(array_map(fn ($n) => self::SEVERITY_WEIGHT[$n['severity']], $needs)),
         ];
     }

@@ -27,7 +27,7 @@ class GetDevelopmentTool implements ToolContract, ToolMetadataContract
     {
         return 'GET /people/development - Entwicklungs-Karten der aktiven Mitarbeiter: Reifestufe (onboarding/growing/stable/carrying), '
             . 'Alter (seit Anstellung), Erfahrung (Ergebnisse gesamt/30 Tage/Vormonat, Qualität, Korrekturen, Regeln) und Handlungsbedarf '
-            . '(critical/warning/info mit Begründung), dringendster zuerst. Optional employee_id für eine Karte, kind, only_needs.';
+            . '(critical/warning/info mit Begründung), dringendster zuerst; bei Menschen stehen Stammdaten-Lücken getrennt unter gaps. Optional employee_id für eine Karte, kind, only_needs.';
     }
 
     public function getSchema(): array

@@ -83,6 +83,7 @@
                         @else
                             @svg('heroicon-o-check-circle', 'w-4 h-4 text-[color:var(--nx-success)] shrink-0')
                             <span class="text-[color:var(--nx-muted)]">nichts offen</span>
+                            @if(! empty($card['gaps']))<span class="truncate text-[color:var(--nx-faint)]">· Stammdaten unvollständig</span>@endif
                         @endif
                     </span>
                 </a>
