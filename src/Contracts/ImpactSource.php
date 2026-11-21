@@ -71,4 +71,13 @@ interface ImpactSource
      * @return array<int,array{ref:string, title:?string, origin_ref:string, at:CarbonInterface}>
      */
     public function adoptions(int $teamId, CarbonInterface $from, CarbonInterface $to): array;
+
+    /**
+     * Transparenz (S2): wie nachvollziehbar jemand arbeitet, als Anteil „nachvollziehbar" an „alles".
+     * Bekannte Schlüssel: 'structured' (verbindliche Vorgänge statt freier Nachrichten),
+     * 'situated' (Vorgänge, die an einem Arbeitsobjekt hängen — Aufgabe, Ticket, Projekt …).
+     *
+     * @return array<int,array{employee_id:int, key:string, traced:int, total:int}>
+     */
+    public function transparency(int $teamId, array $subjects, CarbonInterface $from, CarbonInterface $to): array;
 }

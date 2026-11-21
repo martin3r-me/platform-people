@@ -17,6 +17,7 @@
         ['Einzahlen', $num($p['contribute']), 'auf Key Results und erreichte Meilensteine'],
         ['Querdenken', $num($p['lateral']), 'von der Organisation aufgegriffen'],
         ['Zielgüte', $p['goal_quality'] === null ? '—' : $pct($p['goal_quality']), 'eigene Ziele ambitioniert (Optimum ~80 % Erreichung)'],
+        ['Transparenz', $pct($p['transparency'] ?? null), 'verbindliche Vorgänge an Arbeitsobjekten statt freier Nachrichten'],
     ];
     $indicators = [
         ['geschätzt', $ind['estimated']],
@@ -24,6 +25,8 @@
         ['ausgerichtet', $ind['aligned']],
         ['Schätzung trifft', $ind['calibration']],
         ['Zielerreichung', $ind['goal_attainment']],
+        ['in Vorgängen', $ind['structured'] ?? null],
+        ['an Objekten', $ind['situated'] ?? null],
     ];
 @endphp
 
@@ -44,7 +47,7 @@
             </span>
         </div>
 
-        <dl class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3 m-0">
+        <dl class="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3 m-0">
             @foreach($parts as [$label, $value, $hint])
                 <div title="{{ $hint }}">
                     <dt class="text-[11px] uppercase tracking-wide text-[color:var(--nx-faint)]">{{ $label }}</dt>
@@ -85,7 +88,7 @@
         </div>
 
         @if(empty($impact['sources']))
-            <p class="m-0 text-xs text-[color:var(--nx-muted)]">Noch meldet kein Modul Wirkung (Planner, OKR, Management Book).</p>
+            <p class="m-0 text-xs text-[color:var(--nx-muted)]">Noch meldet kein Modul Wirkung (Planner, Dev, Helpdesk, OKR, Management Book, Organisation).</p>
         @endif
     </div>
 </x-nx-card>

@@ -72,12 +72,13 @@ class ImpactScore
 
     private function window(int $teamId, array $subjects, array $ids, Carbon $from, Carbon $to): array
     {
-        $work = $goals = $milestones = $adoptions = [];
+        $work = $goals = $milestones = $adoptions = $transparency = [];
         foreach ($this->registry->all() as $source) {
             $work = array_merge($work, $this->safe(fn () => $source->work($teamId, $subjects, $from, $to)));
             $goals = array_merge($goals, $this->safe(fn () => $source->goals($teamId, $subjects, $from, $to)));
             $milestones = array_merge($milestones, $this->safe(fn () => $source->milestones($teamId, $from, $to)));
             $adoptions = array_merge($adoptions, $this->safe(fn () => $source->adoptions($teamId, $from, $to)));
+            $transparency = array_merge($transparency, $this->safe(fn () => $source->transparency($teamId, $subjects, $from, $to)));
         }
         $contextRefs = array_values(array_unique(array_merge(...array_map(fn ($w) => $w['context_refs'] ?? [], $work ?: [[]]))));
         $alignment = [];
@@ -89,7 +90,7 @@ class ImpactScore
             }
         }
 
-        return $this->calculator->calculate($ids, $work, $alignment, $goals, $milestones, $adoptions);
+        return $this->calculator->calculate($ids, $work, $alignment, $goals, $milestones, $adoptions, $transparency);
     }
 
     /** Mitarbeiter → Subjekte der Quellen. Agenten handeln über ihren Bot-User am Org-Knoten. */

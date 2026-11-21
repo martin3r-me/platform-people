@@ -16,6 +16,8 @@ namespace Platform\People\Services;
  *                     rückwirkend deutlich höher.
  *   Zielgüte (S3)     eigene Ziele sollen ambitioniert sein: das Optimum liegt bei ~70–85 % Erreichung;
  *                     dauernd 100 % heißt, die Ziele waren zu leicht. Gezählt werden abgeschlossene Zyklen.
+ *   Transparenz (S2)  verbindliche Vorgänge statt freier Nachrichten, Vorgänge an Arbeitsobjekten statt
+ *                     lose — modelliert den Score (bis −20 %); ohne Daten neutral.
  *
  * Rein rechnend (keine DB) — die Daten kommen aus den Quellen (ImpactSource). Die Stellgrößen stehen oben;
  * justiert wird an den echten Zahlen.
@@ -30,6 +32,9 @@ class ImpactCalculator
     public const NO_GOALS_FACTOR = 0.75;    // ohne eigene Ziele fehlt die Richtung
     public const NEED_SHARE = 0.3;          // ab diesem Anteil ungeschätzt/undokumentiert → Handlungsbedarf
     public const CALIBRATION_MIN = 5;
+    public const TRANSPARENCY_WEIGHT = 0.2;  // so viel kostet volle Intransparenz
+    public const TRANSPARENCY_MIN = 5;      // erst ab so vielen Ereignissen je Schlüssel aussagekräftig
+    public const TRANSPARENCY_KEYS = ['structured', 'situated'];
 
     /** Zielgüte über Zielerreichung: Stützpunkte, dazwischen linear. */
     public const GOAL_CURVE = [[0.0, 0.0], [0.4, 0.2], [0.7, 1.0], [0.85, 1.0], [1.0, 0.6]];
@@ -56,9 +61,10 @@ class ImpactCalculator
      * @param  array  $goals       Zeilen aus ImpactSource::goals()
      * @param  array  $milestones  Zeilen aus ImpactSource::milestones()
      * @param  array  $adoptions   Zeilen aus ImpactSource::adoptions()
+     * @param  array  $transparency Zeilen aus ImpactSource::transparency()
      * @return array<int,array> employee_id → Ergebnis
      */
-    public function calculate(array $employeeIds, array $work, array $alignment, array $goals, array $milestones, array $adoptions): array
+    public function calculate(array $employeeIds, array $work, array $alignment, array $goals, array $milestones, array $adoptions, array $transparency = []): array
     {
         // Meilenstein-Anerkennung: Ziel-Ref → stärkstes Gewicht über alle erreichten Meilensteine
         $milestoneWeight = [];
@@ -81,15 +87,22 @@ class ImpactCalculator
             $goalsByEmployee[$g['employee_id']][] = $g;
         }
 
+        $traceByEmployee = [];
+        foreach ($transparency as $t) {
+            $k = $t['key'];
+            $traceByEmployee[$t['employee_id']][$k]['traced'] = ($traceByEmployee[$t['employee_id']][$k]['traced'] ?? 0) + (int) $t['traced'];
+            $traceByEmployee[$t['employee_id']][$k]['total'] = ($traceByEmployee[$t['employee_id']][$k]['total'] ?? 0) + (int) $t['total'];
+        }
+
         $out = [];
         foreach ($employeeIds as $id) {
-            $out[$id] = $this->forEmployee($byEmployee[$id] ?? [], $goalsByEmployee[$id] ?? [], $alignment, $milestoneWeight, $adoptedFrom);
+            $out[$id] = $this->forEmployee($byEmployee[$id] ?? [], $goalsByEmployee[$id] ?? [], $alignment, $milestoneWeight, $adoptedFrom, $traceByEmployee[$id] ?? []);
         }
 
         return $out;
     }
 
-    private function forEmployee(array $items, array $goals, array $alignment, array $milestoneWeight, array $adoptedFrom): array
+    private function forEmployee(array $items, array $goals, array $alignment, array $milestoneWeight, array $adoptedFrom, array $traces = []): array
     {
         $done = array_values(array_filter($items, fn ($w) => empty($w['reopened'])));
         $reopened = array_values(array_filter($items, fn ($w) => ! empty($w['reopened'])));
@@ -151,7 +164,17 @@ class ImpactCalculator
             (bool) $goals => 1.0,
             default => self::NO_GOALS_FACTOR,
         };
-        $score = max(0.0, ($deliver + $contribute + $lateral) * $factor);
+        // Transparenz: Anteil nachvollziehbar je Schlüssel (erst ab TRANSPARENCY_MIN Ereignissen), gemittelt.
+        $shares = [];
+        foreach (self::TRANSPARENCY_KEYS as $k) {
+            $total = (int) ($traces[$k]['total'] ?? 0);
+            $shares[$k] = $total >= self::TRANSPARENCY_MIN ? min(1.0, ($traces[$k]['traced'] ?? 0) / $total) : null;
+        }
+        $known = array_values(array_filter($shares, fn ($v) => $v !== null));
+        $transparency = $known ? array_sum($known) / count($known) : null;
+        $transparencyFactor = $transparency === null ? 1.0 : 1 - self::TRANSPARENCY_WEIGHT * (1 - $transparency);
+
+        $score = max(0.0, ($deliver + $contribute + $lateral) * $factor * $transparencyFactor);
 
         $n = count($done);
         $indicators = [
@@ -160,6 +183,8 @@ class ImpactCalculator
             'aligned' => $n ? $alignedCount / $n : null,
             'calibration' => count($pairs) >= self::CALIBRATION_MIN ? $this->spearman($pairs) : null,
             'goal_attainment' => $closed ? array_sum(array_column($closed, 'attainment')) / count($closed) : null,
+            'structured' => $shares['structured'],
+            'situated' => $shares['situated'],
         ];
 
         return [
@@ -169,6 +194,7 @@ class ImpactCalculator
                 'contribute' => round($contribute, 1),
                 'lateral' => round($lateral, 1),
                 'goal_quality' => $goalQuality === null ? null : round($goalQuality, 2),
+                'transparency' => $transparency === null ? null : round($transparency, 2),
             ],
             'indicators' => array_map(fn ($v) => $v === null ? null : round($v, 2), $indicators),
             'counts' => ['done' => $n, 'reopened' => count($reopened), 'goals' => count($goals), 'goals_closed' => count($closed), 'goals_unmaintained' => count($unmaintained), 'adopted' => count($adopted)],
@@ -216,6 +242,14 @@ class ImpactCalculator
         }
         if ($n >= self::CALIBRATION_MIN && $ind['aligned'] !== null && $ind['aligned'] < 0.5) {
             $needs[] = ['key' => 'unaligned', 'severity' => 'info', 'text' => 'Mehr als die Hälfte der Arbeit zahlt auf kein Ziel ein.'];
+        }
+        if ($ind['structured'] !== null && 1 - $ind['structured'] > self::NEED_SHARE) {
+            $needs[] = ['key' => 'unstructured', 'severity' => 'warning',
+                'text' => sprintf('%d %% der Kommunikation als freie Nachricht statt als Vorgang — nicht verbindlich nachvollziehbar.', round(100 * (1 - $ind['structured'])))];
+        }
+        if ($ind['situated'] !== null && 1 - $ind['situated'] > self::NEED_SHARE) {
+            $needs[] = ['key' => 'unsituated', 'severity' => 'warning',
+                'text' => sprintf('%d %% der Vorgänge hängen an keinem Arbeitsobjekt (Aufgabe, Ticket, Projekt …) — nicht nachvollziehbar.', round(100 * (1 - $ind['situated'])))];
         }
         if ($ind['calibration'] !== null && $ind['calibration'] < 0.3) {
             $needs[] = ['key' => 'calibration', 'severity' => 'info', 'text' => 'Story Points sagen den Aufwand kaum voraus — Schätzung kalibrieren.'];

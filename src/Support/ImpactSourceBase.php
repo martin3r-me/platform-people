@@ -34,4 +34,9 @@ abstract class ImpactSourceBase implements ImpactSource
     {
         return [];
     }
+
+    public function transparency(int $teamId, array $subjects, CarbonInterface $from, CarbonInterface $to): array
+    {
+        return [];
+    }
 }
