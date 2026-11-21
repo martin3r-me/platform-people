@@ -139,7 +139,9 @@ class ImpactCalculator
 
         // Zielgüte nur über abgeschlossene Ziele — ein laufendes Quartal steht anfangs naturgemäß bei 0 %.
         // Laufen nur Ziele, ist die Richtung da (neutral); fehlen eigene Ziele ganz, fehlt sie.
-        $closed = array_values(array_filter($goals, fn ($g) => ! empty($g['closed'])));
+        // Nie eingecheckte Ziele sind nicht verfehlt, sondern nicht gepflegt — eigener Hinweis, keine Zielgüte.
+        $unmaintained = array_values(array_filter($goals, fn ($g) => array_key_exists('maintained', $g) && ! $g['maintained']));
+        $closed = array_values(array_filter($goals, fn ($g) => ! empty($g['closed']) && ($g['maintained'] ?? true)));
         $goalQuality = null;
         if ($closed) {
             $goalQuality = array_sum(array_map(fn ($g) => self::goalQuality((float) $g['attainment']), $closed)) / count($closed);
@@ -169,9 +171,9 @@ class ImpactCalculator
                 'goal_quality' => $goalQuality === null ? null : round($goalQuality, 2),
             ],
             'indicators' => array_map(fn ($v) => $v === null ? null : round($v, 2), $indicators),
-            'counts' => ['done' => $n, 'reopened' => count($reopened), 'goals' => count($goals), 'goals_closed' => count($closed), 'adopted' => count($adopted)],
+            'counts' => ['done' => $n, 'reopened' => count($reopened), 'goals' => count($goals), 'goals_closed' => count($closed), 'goals_unmaintained' => count($unmaintained), 'adopted' => count($adopted)],
             'adopted' => $adopted,
-            'needs' => $this->needs($n, $indicators, $goals),
+            'needs' => $this->needs($n, $indicators, $goals, count($unmaintained)),
         ];
     }
 
@@ -188,9 +190,13 @@ class ImpactCalculator
         return array_values($out);
     }
 
-    private function needs(int $n, array $ind, array $goals): array
+    private function needs(int $n, array $ind, array $goals, int $unmaintained = 0): array
     {
         $needs = [];
+        if ($unmaintained > 0) {
+            $needs[] = ['key' => 'goals_unmaintained', 'severity' => 'warning',
+                'text' => sprintf('%d eigene Ziele nie eingecheckt — nicht gepflegt.', $unmaintained)];
+        }
         if ($n > 0 && $ind['estimated'] !== null && 1 - $ind['estimated'] > self::NEED_SHARE) {
             $needs[] = ['key' => 'unestimated', 'severity' => 'warning',
                 'text' => sprintf('%d %% der erledigten Arbeit ohne Story Points — zählt nicht als Wirkung.', round(100 * (1 - $ind['estimated'])))];

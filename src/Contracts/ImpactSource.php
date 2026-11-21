@@ -50,8 +50,10 @@ interface ImpactSource
     /**
      * Eigene Ziele der Subjekte (z. B. Objectives/Key Results), die im Zeitraum laufen oder endeten.
      *
-     * @return array<int,array{employee_id:int, ref:string, title:?string, attainment:float, ends_at:?CarbonInterface, closed:bool}>
+     * @return array<int,array{employee_id:int, ref:string, title:?string, attainment:float, ends_at:?CarbonInterface, closed:bool, maintained?:bool}>
      *         attainment 0..1 (Zielerreichung)
+     *         maintained (optional): das Ziel wird gepflegt — mindestens ein Teilziel wurde eingecheckt
+     *         oder speist sich aus einem verfügbaren Messwert. Fehlt der Schlüssel, ist es unbekannt.
      */
     public function goals(int $teamId, array $subjects, CarbonInterface $from, CarbonInterface $to): array;
 
