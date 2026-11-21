@@ -316,6 +316,7 @@ class Show extends Component
         return view('people::livewire.employee.show', [
             'employee'           => $employee,
             'developmentCard'    => $this->tab === 'uebersicht' ? (new \Platform\People\Services\DevelopmentCard())->forEmployee($employee) : null,
+            'impact'             => $this->tab === 'uebersicht' ? $this->impactOf($employee) : null,
             'position'           => \Platform\People\Support\PositionSummary::forEmployees([$employee->id])[$employee->id] ?? null,
             'supervisor'         => $this->supervisorOf($employee),
             'employments'        => $employments,
@@ -326,5 +327,17 @@ class Show extends Component
             'crmProfile'         => $crmProfile,
             'directoryAvailable' => $this->directory() !== null,
         ])->layout('platform::layouts.app');
+    }
+
+    /** Wirkung im Quartal — fehlt sie (Quelle kaputt), bleibt die Seite trotzdem stehen. */
+    private function impactOf(EmployeeModel $employee): ?array
+    {
+        try {
+            return (new \Platform\People\Services\ImpactScore())->forEmployee($employee);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 }

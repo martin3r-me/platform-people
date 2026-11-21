@@ -23,6 +23,9 @@ class PeopleServiceProvider extends ServiceProvider
         // Personen-Verzeichnis-Registry (CRM liefert den Provider) — Singleton.
         $this->app->singleton(\Platform\People\Services\ContactDirectoryRegistry::class);
 
+        // Wirkung: Module, die Arbeit/Ziele/Meilensteine kennen, melden sich als Quelle an — Singleton.
+        $this->app->singleton(\Platform\People\Services\ImpactSourceRegistry::class);
+
         // Gedächtnis der Agenten: organization hält die Agent-Schnittstelle, people führt das Gedächtnis
         // (guarded — nur wenn organization den Vertrag mitbringt).
         if (interface_exists(\Platform\Organization\Contracts\AgentMemoryStore::class)) {
@@ -155,6 +158,7 @@ class PeopleServiceProvider extends ServiceProvider
 
             // Entwicklungs-Karten (Reife, Erfahrung, Handlungsbedarf)
             $registry->register(new \Platform\People\Tools\GetDevelopmentTool());
+            $registry->register(new \Platform\People\Tools\GetImpactTool());
 
             // Gedächtnis der Agenten (Regeln lesen, Kuratier-Entwürfe) + alte organization-Namen als Alias
             $registry->register(new \Platform\People\Tools\ListAgentRulesTool());

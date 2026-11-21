@@ -76,9 +76,14 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 items-start">
                 {{-- Entwicklung --}}
                 <div class="lg:col-span-2 min-w-0">
-                    @if($developmentCard)
-                        <x-people::development-card :card="$developmentCard" />
-                    @endif
+                    <div class="space-y-4 sm:space-y-6">
+                        @if($impact)
+                            <x-people::impact-card :impact="$impact" />
+                        @endif
+                        @if($developmentCard)
+                            <x-people::development-card :card="$developmentCard" />
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Fakten: Stellen, Anstellung, Skills, Kontakt --}}
