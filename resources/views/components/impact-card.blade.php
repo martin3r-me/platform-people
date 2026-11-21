@@ -45,6 +45,30 @@
             <span class="text-sm tabular-nums {{ $t > 0 ? 'text-[color:var(--nx-success)]' : ($t < 0 ? 'text-[color:var(--nx-warning)]' : 'text-[color:var(--nx-muted)]') }}">
                 {{ $t > 0 ? '+' : '' }}{{ $num($t) }} gegenüber dem Quartal davor
             </span>
+            @php
+                $hist = $impact['history'] ?? [];
+                $spark = null;
+                if (count($hist) >= 2) {
+                    $vals = array_column($hist, 'score');
+                    $lo = min($vals); $hi = max($vals); $span = max(0.1, $hi - $lo);
+                    $w = 160; $h = 32; $n = count($vals) - 1;
+                    $pts = [];
+                    foreach ($vals as $i => $v) {
+                        $pts[] = round($i / $n * $w, 1) . ',' . round($h - 2 - ($v - $lo) / $span * ($h - 4), 1);
+                    }
+                    $spark = ['points' => implode(' ', $pts), 'last' => end($pts), 'w' => $w, 'h' => $h,
+                        'from' => $hist[0]['on'], 'lo' => $lo, 'hi' => $hi];
+                }
+            @endphp
+            @if ($spark)
+                <svg viewBox="0 0 {{ $spark['w'] }} {{ $spark['h'] }}" width="{{ $spark['w'] }}" height="{{ $spark['h'] }}" class="ml-auto overflow-visible"
+                     role="img" aria-label="Verlauf seit {{ \Illuminate\Support\Carbon::parse($spark['from'])->format('d.m.') }}: {{ $num($spark['lo']) }} bis {{ $num($spark['hi']) }}">
+                    <title>Verlauf seit {{ \Illuminate\Support\Carbon::parse($spark['from'])->format('d.m.') }} ({{ $num($spark['lo']) }}–{{ $num($spark['hi']) }})</title>
+                    <polyline points="{{ $spark['points'] }}" fill="none" stroke="var(--nx-accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />
+                    @php [$lx, $ly] = explode(',', $spark['last']); @endphp
+                    <circle cx="{{ $lx }}" cy="{{ $ly }}" r="2.5" fill="var(--nx-accent)" />
+                </svg>
+            @endif
         </div>
 
         <dl class="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3 m-0">

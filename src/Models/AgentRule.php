@@ -14,6 +14,7 @@ class AgentRule extends Model
     protected $fillable = [
         'org_entity_id', 'rule_id', 'ord', 'kind', 'trigger', 'text', 'why', 'source', 'status',
         'supersedes', 'confirmed', 'refuted', 'sha', 'rule_created_at', 'rule_updated_at', 'last_used_at',
+        'impact_credited', 'impact_rounds',
     ];
 
     protected $casts = [
@@ -22,6 +23,8 @@ class AgentRule extends Model
         'supersedes' => 'integer',
         'confirmed' => 'integer',
         'refuted' => 'integer',
+        'impact_credited' => 'float',
+        'impact_rounds' => 'integer',
     ];
 
     public const LIVE = ['active', 'probation'];

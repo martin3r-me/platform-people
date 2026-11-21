@@ -64,6 +64,13 @@ class AgentMemoryStore implements \Platform\Organization\Contracts\AgentMemorySt
                 'rule_updated_at' => $r['updated_at'] ?? null,
                 'last_used_at' => $r['last_used_at'] ?? null,
             ]);
+            // Wirkung, die die Regel getragen hat (Credit Assignment im Engram) — nur, wenn das Engram sie meldet.
+            if (array_key_exists('impact_credited', $r)) {
+                $row->fill([
+                    'impact_credited' => $r['impact_credited'] === null ? null : round((float) $r['impact_credited'], 3),
+                    'impact_rounds' => (int) ($r['impact_rounds'] ?? 0),
+                ]);
+            }
             if (! $row->exists || $row->isDirty()) {
                 $row->save();
             }

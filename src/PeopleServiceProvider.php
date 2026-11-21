@@ -77,8 +77,14 @@ class PeopleServiceProvider extends ServiceProvider
             $this->commands([
                 \Platform\People\Console\Commands\ImportSkillsCommand::class,
                 \Platform\People\Console\Commands\ImportJobProfilesCommand::class,
+                \Platform\People\Console\Commands\ImpactSnapshotCommand::class,
             ]);
         }
+
+        // Wirkung: einmal am Tag den Score aller festhalten (Verlauf auf der Wirkungs-Karte).
+        $this->callAfterResolving(\Illuminate\Console\Scheduling\Schedule::class, function (\Illuminate\Console\Scheduling\Schedule $schedule) {
+            $schedule->command('people:impact-snapshot')->dailyAt('05:30')->withoutOverlapping();
+        });
 
         // Config veröffentlichen
         $this->publishes([

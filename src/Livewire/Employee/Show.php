@@ -333,7 +333,16 @@ class Show extends Component
     private function impactOf(EmployeeModel $employee): ?array
     {
         try {
-            return (new \Platform\People\Services\ImpactScore())->forEmployee($employee);
+            $impact = (new \Platform\People\Services\ImpactScore())->forEmployee($employee);
+            // Verlauf: die täglichen Snapshots des letzten Quartals (people:impact-snapshot).
+            $impact['history'] = \Illuminate\Support\Facades\Schema::hasTable('people_impact_snapshots')
+                ? \Platform\People\Models\ImpactSnapshot::where('employee_id', $employee->id)
+                    ->where('taken_on', '>=', now()->subDays(\Platform\People\Services\ImpactScore::WINDOW_DAYS)->toDateString())
+                    ->orderBy('taken_on')->get(['taken_on', 'score'])
+                    ->map(fn ($s) => ['on' => $s->taken_on->toDateString(), 'score' => (float) $s->score])->all()
+                : [];
+
+            return $impact;
         } catch (\Throwable $e) {
             report($e);
 

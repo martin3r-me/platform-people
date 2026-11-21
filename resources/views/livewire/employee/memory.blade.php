@@ -136,6 +136,11 @@
                                                     <x-nx-badge :variant="$bv">{{ $bl }}</x-nx-badge>
                                                     @if ($r->trigger !== '')<span>wenn {{ $r->trigger }}</span>@endif
                                                     @if ($r->confirmed || $r->refuted)<span title="getragen / in die Irre geführt">{{ $r->confirmed }}✓ {{ $r->refuted }}✗</span>@endif
+                                                    @if ($r->impact_rounds)
+                                                        @php $ic = (float) $r->impact_credited; @endphp
+                                                        <span title="Wirkung, die diese Regel getragen hat (Abweichung des Wirkungs-Scores, während sie galt) — über {{ $r->impact_rounds }} Messungen"
+                                                              class="tabular-nums {{ $ic > 0.05 ? 'text-[color:var(--nx-success)]' : ($ic < -0.05 ? 'text-[color:var(--nx-warning)]' : '') }}">Wirkung {{ $ic > 0 ? '+' : '' }}{{ number_format($ic, 2, ',', '.') }}</span>
+                                                    @endif
                                                     <span>{{ ['learned' => 'selbst gelernt', 'import' => 'aus routine.md', 'curation' => 'kuratiert'][$r->source] ?? $r->source }}</span>
                                                     @if ($r->supersedes)<span>löst r{{ $r->supersedes }} ab</span>@endif
                                                     @if ($r->why)<span class="basis-full text-[color:var(--nx-faint)]">{{ $r->why }}</span>@endif
