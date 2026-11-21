@@ -15,7 +15,7 @@ namespace Platform\People\Services;
  *                     greift die Organisation etwas davon auf (Beschluss, Key Result, Aufgabe …), zählt es
  *                     rückwirkend deutlich höher.
  *   Zielgüte (S3)     eigene Ziele sollen ambitioniert sein: das Optimum liegt bei ~70–85 % Erreichung;
- *                     dauernd 100 % heißt, die Ziele waren zu leicht.
+ *                     dauernd 100 % heißt, die Ziele waren zu leicht. Gezählt werden abgeschlossene Zyklen.
  *
  * Rein rechnend (keine DB) — die Daten kommen aus den Quellen (ImpactSource). Die Stellgrößen stehen oben;
  * justiert wird an den echten Zahlen.
@@ -137,11 +137,18 @@ class ImpactCalculator
             $deliver -= (float) ($w['points'] ?? 0);
         }
 
+        // Zielgüte nur über abgeschlossene Ziele — ein laufendes Quartal steht anfangs naturgemäß bei 0 %.
+        // Laufen nur Ziele, ist die Richtung da (neutral); fehlen eigene Ziele ganz, fehlt sie.
+        $closed = array_values(array_filter($goals, fn ($g) => ! empty($g['closed'])));
         $goalQuality = null;
-        if ($goals) {
-            $goalQuality = array_sum(array_map(fn ($g) => self::goalQuality((float) $g['attainment']), $goals)) / count($goals);
+        if ($closed) {
+            $goalQuality = array_sum(array_map(fn ($g) => self::goalQuality((float) $g['attainment']), $closed)) / count($closed);
         }
-        $factor = $goalQuality === null ? self::NO_GOALS_FACTOR : 0.5 + 0.5 * $goalQuality;
+        $factor = match (true) {
+            $goalQuality !== null => 0.5 + 0.5 * $goalQuality,
+            (bool) $goals => 1.0,
+            default => self::NO_GOALS_FACTOR,
+        };
         $score = max(0.0, ($deliver + $contribute + $lateral) * $factor);
 
         $n = count($done);
@@ -150,7 +157,7 @@ class ImpactCalculator
             'documented' => $n ? $documented / $n : null,
             'aligned' => $n ? $alignedCount / $n : null,
             'calibration' => count($pairs) >= self::CALIBRATION_MIN ? $this->spearman($pairs) : null,
-            'goal_attainment' => $goals ? array_sum(array_column($goals, 'attainment')) / count($goals) : null,
+            'goal_attainment' => $closed ? array_sum(array_column($closed, 'attainment')) / count($closed) : null,
         ];
 
         return [
@@ -162,7 +169,7 @@ class ImpactCalculator
                 'goal_quality' => $goalQuality === null ? null : round($goalQuality, 2),
             ],
             'indicators' => array_map(fn ($v) => $v === null ? null : round($v, 2), $indicators),
-            'counts' => ['done' => $n, 'reopened' => count($reopened), 'goals' => count($goals), 'adopted' => count($adopted)],
+            'counts' => ['done' => $n, 'reopened' => count($reopened), 'goals' => count($goals), 'goals_closed' => count($closed), 'adopted' => count($adopted)],
             'adopted' => $adopted,
             'needs' => $this->needs($n, $indicators, $goals),
         ];
