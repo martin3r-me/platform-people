@@ -195,7 +195,9 @@ class ImpactCalculator
         $needs = [];
         if ($unmaintained > 0) {
             $needs[] = ['key' => 'goals_unmaintained', 'severity' => 'warning',
-                'text' => sprintf('%d eigene Ziele nie eingecheckt — nicht gepflegt.', $unmaintained)];
+                'text' => $unmaintained === 1
+                    ? '1 eigenes Ziel nie eingecheckt — nicht gepflegt.'
+                    : sprintf('%d eigene Ziele nie eingecheckt — nicht gepflegt.', $unmaintained)];
         }
         if ($n > 0 && $ind['estimated'] !== null && 1 - $ind['estimated'] > self::NEED_SHARE) {
             $needs[] = ['key' => 'unestimated', 'severity' => 'warning',

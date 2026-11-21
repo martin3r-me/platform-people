@@ -31,6 +31,10 @@ class PeopleServiceProvider extends ServiceProvider
         if (interface_exists(\Platform\Organization\Contracts\AgentMemoryStore::class)) {
             $this->app->singleton(\Platform\Organization\Contracts\AgentMemoryStore::class, \Platform\People\Services\AgentMemoryStore::class);
         }
+        // Wirkung der Agenten: dieselbe Rechnung wie für Menschen, über die Agent-Schnittstelle lesbar.
+        if (interface_exists(\Platform\Organization\Contracts\AgentImpactProvider::class)) {
+            $this->app->singleton(\Platform\Organization\Contracts\AgentImpactProvider::class, \Platform\People\Services\AgentImpact::class);
+        }
     }
 
     public function boot(): void
